@@ -55,6 +55,18 @@ const courses: Course[] = [
       { id: "4-2", title: "Interfaces and Generics", duration: "28:40", videoId: "d56mG7DezGs" },
       { id: "4-3", title: "Advanced Types", duration: "32:22", videoId: "fN22fcn2zP0" },
     ]
+  },
+  {
+    id: "5",
+    slug: "your-custom-course",
+    title: "Your Custom Course",
+    description: "Add your own courses by editing src/lib/courses.ts. You just need a title, description, and a list of YouTube video IDs.",
+    thumbnail: "https://placehold.co/160x90/60A5FA/FFFFFF.png",
+    pdfUrl: "#",
+    lessons: [
+      { id: "5-1", title: "Your First Lesson", duration: "05:00", videoId: "dQw4w9WgXcQ" },
+      { id: "5-2", title: "Your Second Lesson", duration: "10:00", videoId: "dQw4w9WgXcQ" },
+    ]
   }
 ];
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/context/user-context";
 
 interface VideoPlayerProps {
   initialVideoId: string;
@@ -10,6 +11,7 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ initialVideoId, initialTitle }: VideoPlayerProps) {
   const { toast } = useToast();
+  const { currentUser, isLoading: isUserLoading } = useUser();
   const [videoId, setVideoId] = useState(initialVideoId);
   const [title, setTitle] = useState(initialTitle);
   const [isClient, setIsClient] = useState(false);
@@ -28,24 +30,27 @@ export function VideoPlayer({ initialVideoId, initialTitle }: VideoPlayerProps) 
 
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !currentUser) return;
 
     toast({
       title: "Loading Video",
       description: `Now playing: "${title}"`,
     });
     
-    // Mock saving progress. In a real app, you'd use the YouTube Player API
-    // to get the current time and save it.
+    // Mock saving progress for the current user
     const interval = setInterval(() => {
-      localStorage.setItem(`progress_${videoId}`, 'watched');
+      try {
+        localStorage.setItem(`progress_${currentUser.id}_${videoId}`, 'watched');
+      } catch (e) {
+        // localStorage not available
+      }
     }, 15000); // Save every 15 seconds
 
     return () => clearInterval(interval);
 
-  }, [videoId, title, toast, isClient]);
+  }, [videoId, title, toast, isClient, currentUser]);
 
-  if (!isClient) {
+  if (!isClient || isUserLoading) {
     return (
       <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
         <p className="text-muted-foreground">Loading player...</p>

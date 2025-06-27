@@ -6,42 +6,53 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/context/user-context";
 
 interface LessonListProps {
   lessons: Lesson[];
 }
 
 export function LessonList({ lessons }: LessonListProps) {
+  const { currentUser, isLoading } = useUser();
   const [activeLessonId, setActiveLessonId] = useState(lessons[0]?.id || "");
   const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    if (!currentUser) return;
+    
     const storedWatched = new Set<string>();
     lessons.forEach(lesson => {
-      if (localStorage.getItem(`progress_${lesson.videoId}`) === 'watched') {
-        storedWatched.add(lesson.id);
+      try {
+        if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
+          storedWatched.add(lesson.id);
+        }
+      } catch (e) {
+        // localStorage not available
       }
     });
     setWatchedLessons(storedWatched);
-  }, [lessons]);
+  }, [lessons, currentUser]);
 
   const handleLessonClick = (lesson: Lesson) => {
+    if (!currentUser) return;
+
     setActiveLessonId(lesson.id);
     const event = new CustomEvent("changeVideo", {
       detail: { videoId: lesson.videoId, title: lesson.title },
     });
     window.dispatchEvent(event);
 
-    // Mock marking as watched
     setTimeout(() => {
       setWatchedLessons(prev => new Set(prev).add(lesson.id));
-      localStorage.setItem(`progress_${lesson.videoId}`, 'watched');
+      try {
+        localStorage.setItem(`progress_${currentUser.id}_${lesson.videoId}`, 'watched');
+      } catch (e) {
+        // localStorage not available
+      }
     }, 5000);
   };
 
-  if (!isClient) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>

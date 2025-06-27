@@ -14,3 +14,9 @@ export interface Course {
   pdfUrl: string;
   lessons: Lesson[];
 }
+
+export interface User {
+  id: string;
+  name: string;
+  avatar: string;
+}

@@ -7,48 +7,69 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, User, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/context/user-context";
+import { AddUserDialog } from "./add-user-dialog";
 
 export function Header() {
+  const { currentUser, users, setCurrentUser, isLoading } = useUser();
+
+  if (isLoading) {
+    return (
+       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+          <SidebarTrigger className="md:hidden" />
+          <div className="flex-1" />
+          <Loader2 className="h-6 w-6 animate-spin" />
+      </header>
+    )
+  }
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1" />
+      <AddUserDialog />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
               <AvatarImage
-                src="https://placehold.co/100x100.png"
-                alt="@student"
+                src={currentUser?.avatar}
+                alt={currentUser?.name || "User"}
               />
-              <AvatarFallback>S</AvatarFallback>
+              <AvatarFallback>{currentUser?.name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">Student</p>
+              <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                student@example.com
+                Switching profile will save progress for that user.
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
+          <DropdownMenuRadioGroup value={currentUser?.id} onValueChange={(id) => {
+            const user = users.find(u => u.id === id);
+            if (user) setCurrentUser(user);
+          }}>
+            {users.map((user) => (
+              <DropdownMenuRadioItem key={user.id} value={user.id}>
+                 <User className="mr-2 h-4 w-4" />
+                 <span>{user.name}</span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/login">
