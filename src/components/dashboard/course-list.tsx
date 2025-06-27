@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Download } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Course } from "@/lib/types";
@@ -57,12 +57,6 @@ export function CourseList({ courses }: CourseListProps) {
                 <Link href={`/class/${course.slug}`}>
                   <BookOpen className="mr-2" />
                   {index === 0 ? "Continue" : "Start"}
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full">
-                <Link href={course.pdfUrl} target="_blank">
-                  <Download className="mr-2" />
-                  PDF
                 </Link>
               </Button>
             </div>

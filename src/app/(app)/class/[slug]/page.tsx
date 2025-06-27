@@ -55,15 +55,6 @@ export default async function ClassPage({
               <CardContent>
                 <h3 className="font-semibold mb-2 text-lg">About this course</h3>
                 <p className="text-muted-foreground">{course.description}</p>
-                <a 
-                  href={course.pdfUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-flex items-center gap-2 mt-4 text-primary font-medium hover:underline"
-                >
-                  <FileText className="w-4 h-4" />
-                  Download Course Materials
-                </a>
               </CardContent>
             </Card>
           </div>

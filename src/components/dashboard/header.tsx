@@ -17,6 +17,7 @@ import { LogOut, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/context/user-context";
 import { AddUserDialog } from "./add-user-dialog";
+import { ThemeToggle } from "../theme-toggle";
 
 export function Header() {
   const { currentUser, users, setCurrentUser, isLoading } = useUser();
@@ -35,6 +36,7 @@ export function Header() {
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1" />
+      <ThemeToggle />
       <AddUserDialog />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

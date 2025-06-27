@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Lesson } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PlayCircle, CheckCircle } from "lucide-react";
+import { PlayCircle, CheckCircle, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/context/user-context";
 
@@ -73,45 +72,57 @@ export function LessonList({ lessons }: LessonListProps) {
         <CardTitle>Course Content</CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {lessons.map((lesson, index) => {
             const isActive = lesson.id === activeLessonId;
             const isWatched = watchedLessons.has(lesson.id);
             return (
-              <li key={lesson.id}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className="w-full justify-start h-auto py-3 px-4 text-left"
+              <li
+                key={lesson.id}
+                className={cn(
+                  "flex items-center justify-between rounded-md transition-colors",
+                  isActive ? "bg-secondary" : "hover:bg-muted/50"
+                )}
+              >
+                <button
+                  className="flex-1 flex items-start gap-4 p-3 text-left"
                   onClick={() => handleLessonClick(lesson)}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-center">
-                      {isActive ? (
-                        <PlayCircle className="w-6 h-6 text-primary" />
-                      ) : isWatched ? (
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      ) : (
-                        <span className="font-bold text-lg text-muted-foreground w-6 text-center">
-                          {index + 1}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <p
-                        className={cn(
-                          "font-medium leading-snug",
-                          isActive && "text-primary"
-                        )}
-                      >
-                        {lesson.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {lesson.duration}
-                      </p>
-                    </div>
+                  <div className="flex flex-col items-center pt-1">
+                    {isActive ? (
+                      <PlayCircle className="w-6 h-6 text-primary" />
+                    ) : isWatched ? (
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    ) : (
+                      <span className="font-bold text-lg text-muted-foreground w-6 text-center">
+                        {index + 1}
+                      </span>
+                    )}
                   </div>
-                </Button>
+
+                  <div className="flex-1">
+                    <p
+                      className={cn(
+                        "font-medium leading-snug",
+                        isActive && "text-primary"
+                      )}
+                    >
+                      {lesson.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {lesson.duration}
+                    </p>
+                  </div>
+                </button>
+                <a
+                  href={lesson.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-3 text-muted-foreground hover:text-primary"
+                  aria-label={`Download materials for ${lesson.title}`}
+                >
+                  <Download className="h-5 w-5" />
+                </a>
               </li>
             );
           })}
