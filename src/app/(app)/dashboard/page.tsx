@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { CourseList } from "@/components/dashboard/course-list";
 import { GoalsCard } from "@/components/dashboard/goals-card";
 import { ClassGoalCard } from "@/components/dashboard/progress-summary-card";
-import { getCourses } from "@/lib/courses";
+import { getCoursesAction } from '@/app/actions/course-actions';
 import type { Course } from '@/lib/types';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +20,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadCourses() {
-      const fetchedCourses = await getCourses();
+      setIsLoadingCourses(true);
+      const fetchedCourses = await getCoursesAction();
       setCourses(fetchedCourses);
       setIsLoadingCourses(false);
     }

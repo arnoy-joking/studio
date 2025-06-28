@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import type { Course, Lesson } from '@/lib/types';
-import { getCourses } from '@/lib/courses';
+import { getCoursesAction, addCourseAction, deleteCourseAction, updateCourseAction } from '@/app/actions/course-actions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,6 @@ import {
 } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Trash2, Edit, Loader2, Lock, X } from 'lucide-react';
-import { addCourseAction, deleteCourseAction, updateCourseAction } from '@/app/actions/course-actions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -239,7 +238,7 @@ function CourseManager() {
 
     const fetchCourses = async () => {
         setIsLoading(true);
-        const fetchedCourses = await getCourses();
+        const fetchedCourses = await getCoursesAction();
         setCourses(fetchedCourses);
         setIsLoading(false);
     };

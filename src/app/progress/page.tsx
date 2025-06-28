@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Compass, User, CheckCircle } from 'lucide-react';
 import { getUsers } from '@/lib/users';
-import { getCourses } from '@/lib/courses';
+import { getCoursesAction } from '@/app/actions/course-actions';
 import type { User as UserType, Course, Lesson } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,7 +22,7 @@ export default function ProgressPage() {
     useEffect(() => {
         async function loadData() {
             setIsLoading(true);
-            const [fetchedUsers, fetchedCourses] = await Promise.all([getUsers(), getCourses()]);
+            const [fetchedUsers, fetchedCourses] = await Promise.all([getUsers(), getCoursesAction()]);
             setUsers(fetchedUsers);
             setCourses(fetchedCourses);
 
