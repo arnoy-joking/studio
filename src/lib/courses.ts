@@ -10,7 +10,8 @@ import {
     deleteDoc,
     query,
     where,
-    limit
+    limit,
+    writeBatch
 } from "firebase/firestore";
 
 const coursesCollection = collection(db, 'courses');
@@ -18,7 +19,7 @@ const coursesCollection = collection(db, 'courses');
 export async function getCourses(): Promise<Course[]> {
   const snapshot = await getDocs(coursesCollection);
   const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
-  return courses;
+  return courses.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 }
 
 export async function getCourseBySlug(slug: string): Promise<Course | undefined> {
@@ -43,7 +44,7 @@ export async function addCourse(courseData: Omit<Course, 'id'>): Promise<Course>
     return newCourse;
 }
 
-export async function updateCourse(courseId: string, courseData: Omit<Course, 'id'>): Promise<Course | undefined> {
+export async function updateCourse(courseId: string, courseData: Partial<Omit<Course, 'id'>>): Promise<Course | undefined> {
     const courseDocRef = doc(db, 'courses', courseId);
     
     const docSnap = await getDoc(courseDocRef);
@@ -51,9 +52,21 @@ export async function updateCourse(courseId: string, courseData: Omit<Course, 'i
         return undefined;
     }
     
-    await updateDoc(courseDocRef, { ...courseData });
-    return { id: courseId, ...courseData };
+    await updateDoc(courseDocRef, courseData);
+    
+    const updatedDoc = await getDoc(courseDocRef);
+    return { id: courseId, ...updatedDoc.data() } as Course;
 }
+
+export async function updateCourseOrder(courseIds: string[]): Promise<void> {
+    const batch = writeBatch(db);
+    courseIds.forEach((id, index) => {
+        const courseRef = doc(db, 'courses', id);
+        batch.update(courseRef, { order: index });
+    });
+    await batch.commit();
+}
+
 
 export async function deleteCourse(courseId: string): Promise<boolean> {
     const courseDocRef = doc(db, 'courses', courseId);

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import type { Course, Lesson } from '@/lib/types';
-import { getCoursesAction, addCourseAction, deleteCourseAction, updateCourseAction } from '@/app/actions/course-actions';
+import { getCoursesAction, addCourseAction, deleteCourseAction, updateCourseAction, updateCourseOrderAction } from '@/app/actions/course-actions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +53,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Trash2, Edit, Loader2, Lock, X } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Loader2, Lock, ArrowUp, ArrowDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -71,11 +71,12 @@ const courseSchema = z.object({
     description: z.string().min(1, 'Description is required'),
     thumbnail: z.string().url('Thumbnail must be a valid URL'),
     lessons: z.array(lessonSchema).min(1, 'At least one lesson is required'),
+    order: z.number(),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
 
-function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; onFormSubmit: () => void; closeDialog: () => void }) {
+function CourseForm({ course, onFormSubmit, closeDialog, totalCourses }: { course?: Course; onFormSubmit: () => void; closeDialog: () => void; totalCourses?: number }) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bulkText, setBulkText] = useState('');
@@ -91,6 +92,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
             description: '',
             thumbnail: '',
             lessons: [],
+            order: totalCourses || 0,
         },
     });
 
@@ -98,12 +100,6 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
         control: form.control,
         name: "lessons",
     });
-
-    useEffect(() => {
-        if (!course) {
-            append({ id: crypto.randomUUID(), title: '', duration: '00:00:00', videoId: '', pdfUrl: '' });
-        }
-    }, [course, append]);
 
     const handleParseBulkLessons = () => {
         const lines = bulkText.split('\n').filter(line => line.trim() !== '');
@@ -171,6 +167,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
                     <FormField control={form.control} name="slug" render={({ field }) => ( <FormItem><FormLabel>Slug</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="thumbnail" render={({ field }) => ( <FormItem><FormLabel>Thumbnail URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="order" render={({ field }) => ( <FormItem><FormLabel>Display Order</FormLabel><FormControl><Input type="number" {...field} disabled /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 
                 <Tabs defaultValue="manual" className="w-full">
@@ -179,7 +176,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
                         <TabsTrigger value="bulk">Bulk Add</TabsTrigger>
                     </TabsList>
                     <TabsContent value="manual" className="space-y-4 pt-4">
-                        <h3 className="text-lg font-medium">Lessons</h3>
+                         {fields.length > 0 && <h3 className="text-lg font-medium">Lessons</h3>}
                         {fields.map((field, index) => (
                             <div key={field.id} className="p-4 border rounded-lg space-y-4 relative">
                                 <FormField control={form.control} name={`lessons.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Lesson Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -227,7 +224,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
     )
 }
 
-function AddEditCourseDialog({ course, onUpdate, children }: { course?: Course, onUpdate: () => void, children: React.ReactNode }) {
+function AddEditCourseDialog({ course, onUpdate, children, totalCourses }: { course?: Course, onUpdate: () => void, children: React.ReactNode, totalCourses?: number }) {
     const [isOpen, setIsOpen] = useState(false);
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -237,7 +234,7 @@ function AddEditCourseDialog({ course, onUpdate, children }: { course?: Course, 
                     <DialogTitle>{course ? 'Edit Course' : 'Add New Course'}</DialogTitle>
                     <DialogDescription>{course ? 'Edit the details of your course.' : 'Fill in the details for the new course.'}</DialogDescription>
                 </DialogHeader>
-                <CourseForm course={course} onFormSubmit={onUpdate} closeDialog={() => setIsOpen(false)} />
+                <CourseForm course={course} onFormSubmit={onUpdate} closeDialog={() => setIsOpen(false)} totalCourses={totalCourses} />
             </DialogContent>
         </Dialog>
     );
@@ -245,13 +242,16 @@ function AddEditCourseDialog({ course, onUpdate, children }: { course?: Course, 
 
 function CourseManager() {
     const [courses, setCourses] = useState<Course[]>([]);
+    const [initialOrder, setInitialOrder] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSavingOrder, setIsSavingOrder] = useState(false);
     const { toast } = useToast();
 
     const fetchCourses = async () => {
         setIsLoading(true);
         const fetchedCourses = await getCoursesAction();
         setCourses(fetchedCourses);
+        setInitialOrder(fetchedCourses.map(c => c.id));
         setIsLoading(false);
     };
 
@@ -268,6 +268,31 @@ function CourseManager() {
             toast({ title: 'Error', description: result.message, variant: 'destructive' });
         }
     };
+    
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        const newCourses = [...courses];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        
+        if (newIndex < 0 || newIndex >= newCourses.length) return;
+
+        [newCourses[index], newCourses[newIndex]] = [newCourses[newIndex], newCourses[index]];
+        setCourses(newCourses);
+    };
+
+    const handleSaveOrder = async () => {
+        setIsSavingOrder(true);
+        const courseIds = courses.map(c => c.id);
+        const result = await updateCourseOrderAction(courseIds);
+        if (result.success) {
+            toast({ title: 'Success', description: 'Course order saved.' });
+            setInitialOrder(courseIds);
+        } else {
+            toast({ title: 'Error', description: result.message, variant: 'destructive' });
+        }
+        setIsSavingOrder(false);
+    };
+    
+    const isOrderChanged = JSON.stringify(courses.map(c => c.id)) !== JSON.stringify(initialOrder);
 
     if (isLoading) {
         return (
@@ -284,19 +309,38 @@ function CourseManager() {
              <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Manage Courses</h1>
-                    <p className="text-muted-foreground">Add, edit, or delete your courses.</p>
+                    <p className="text-muted-foreground">Add, edit, or reorder your courses.</p>
                 </div>
-                <AddEditCourseDialog onUpdate={fetchCourses}>
+                <AddEditCourseDialog onUpdate={fetchCourses} totalCourses={courses.length}>
                     <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Course</Button>
                 </AddEditCourseDialog>
             </div>
+            {isOrderChanged && (
+                <div className="flex justify-end mb-4 p-4 border rounded-lg bg-secondary/50 items-center gap-4">
+                    <p className="text-sm font-medium text-secondary-foreground">You have unsaved changes to the course order.</p>
+                    <Button onClick={handleSaveOrder} disabled={isSavingOrder}>
+                        {isSavingOrder && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Order
+                    </Button>
+                </div>
+             )}
             <div className="space-y-4">
-                {courses.map(course => (
+                {courses.map((course, index) => (
                     <Card key={course.id}>
-                        <CardHeader className="flex flex-row items-start justify-between">
-                           <div>
-                                <CardTitle>{course.title}</CardTitle>
-                                <CardDescription>{course.lessons.length} lessons</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-4">
+                               <div className="flex flex-col gap-1">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
+                                        <ArrowUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'down')} disabled={index === courses.length - 1}>
+                                        <ArrowDown className="h-4 w-4" />
+                                    </Button>
+                               </div>
+                               <div>
+                                    <CardTitle>{course.title}</CardTitle>
+                                    <CardDescription>{course.lessons.length} lessons</CardDescription>
+                               </div>
                            </div>
                            <div className="flex gap-2">
                                 <AddEditCourseDialog course={course} onUpdate={fetchCourses}>

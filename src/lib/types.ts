@@ -13,6 +13,7 @@ export interface Course {
   description: string;
   thumbnail: string;
   lessons: Lesson[];
+  order: number;
 }
 
 export interface User {

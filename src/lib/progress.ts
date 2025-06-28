@@ -7,7 +7,8 @@ import {
     getDoc,
     query,
     where,
-    Timestamp
+    Timestamp,
+    writeBatch
 } from "firebase/firestore";
 import type { Lesson } from './types';
 
@@ -54,7 +55,7 @@ export async function setLastWatchedLesson(userId: string, courseId: string, les
         courseId,
         lastWatchedLessonId: lessonId,
         lastWatchedAt: Timestamp.now(),
-    });
+    }, { merge: true });
 }
 
 export async function getAllProgress(): Promise<Record<string, Set<string>>> {
@@ -73,4 +74,24 @@ export async function getAllProgress(): Promise<Record<string, Set<string>>> {
     });
 
     return allProgress;
+}
+
+export async function deleteProgressForUser(userId: string): Promise<void> {
+    const batch = writeBatch(db);
+
+    // Find and delete progress records
+    const progressQuery = query(progressCollection, where("userId", "==", userId));
+    const progressSnapshot = await getDocs(progressQuery);
+    progressSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    // Find and delete user activity records
+    const activityQuery = query(userActivityCollection, where("userId", "==", userId));
+    const activitySnapshot = await getDocs(activityQuery);
+    activitySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
 }

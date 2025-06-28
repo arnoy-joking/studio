@@ -38,9 +38,9 @@ export function CourseList({ courses, progress }: CourseListProps) {
               <Image
                 src={course.thumbnail}
                 alt={course.title}
-                width={240}
-                height={135}
-                className="rounded-md aspect-video object-cover w-full md:w-60 flex-shrink-0"
+                width={320}
+                height={180}
+                className="rounded-md aspect-video object-cover w-full md:w-80 flex-shrink-0"
                 data-ai-hint="online course"
               />
               <div className="flex-1">

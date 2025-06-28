@@ -7,7 +7,8 @@ import {
     getDoc, 
     addDoc, 
     query,
-    orderBy
+    orderBy,
+    deleteDoc
 } from "firebase/firestore";
 
 const usersCollection = collection(db, 'users');
@@ -41,4 +42,17 @@ export async function addUser(name: string): Promise<User> {
     };
     const docRef = await addDoc(usersCollection, newUser);
     return { id: docRef.id, ...newUser };
+}
+
+export async function deleteUser(userId: string): Promise<boolean> {
+    const userDocRef = doc(db, 'users', userId);
+    
+    const docSnap = await getDoc(userDocRef);
+    if (!docSnap.exists()) {
+        console.warn(`User with id ${userId} not found for deletion.`);
+        return false;
+    }
+    
+    await deleteDoc(userDocRef);
+    return true;
 }
