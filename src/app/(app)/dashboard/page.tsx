@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { CourseList } from "@/components/dashboard/course-list";
 import { GoalsCard } from "@/components/dashboard/goals-card";
-import { ProgressSummaryCard } from "@/components/dashboard/progress-summary-card";
+import { ClassGoalCard } from "@/components/dashboard/progress-summary-card";
 import { getCourses } from "@/lib/courses";
 import type { Course } from '@/lib/types';
 import { useUser } from '@/context/user-context';
@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const { currentUser, isLoading: isUserLoading } = useUser();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [watchedLessonsCount, setWatchedLessonsCount] = useState(0);
 
   useEffect(() => {
     async function loadCourses() {
@@ -22,9 +23,23 @@ export default function DashboardPage() {
     loadCourses();
   }, []);
 
-  // Mock progress for demonstration
-  const completedCourses = 1;
-  const totalCourses = courses.length;
+  useEffect(() => {
+    if (!currentUser || courses.length === 0) return;
+
+    const allLessons = courses.flatMap(c => c.lessons);
+    let count = 0;
+    for (const lesson of allLessons) {
+        try {
+            if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
+                count++;
+            }
+        } catch (e) {
+            // localStorage not available
+        }
+    }
+    setWatchedLessonsCount(count);
+  }, [currentUser, courses]);
+
 
   if (isUserLoading || isLoadingCourses) {
     return (
@@ -57,10 +72,7 @@ export default function DashboardPage() {
             <CourseList courses={courses} />
           </div>
           <div className="space-y-8 lg:sticky lg:top-24">
-            <ProgressSummaryCard
-              completed={completedCourses}
-              total={totalCourses}
-            />
+            <ClassGoalCard watchedCount={watchedLessonsCount} />
             <GoalsCard />
           </div>
         </div>
