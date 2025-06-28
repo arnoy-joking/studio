@@ -25,7 +25,7 @@ export function Header() {
   if (isLoading) {
     return (
        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
-          <SidebarTrigger className="md:hidden" />
+          <SidebarTrigger />
           <div className="flex-1" />
           <Loader2 className="h-6 w-6 animate-spin" />
       </header>
@@ -34,7 +34,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
-      <SidebarTrigger className="md:hidden" />
+      <SidebarTrigger />
       <div className="flex-1" />
       <ThemeToggle />
       <AddUserDialog />

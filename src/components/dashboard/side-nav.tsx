@@ -10,10 +10,11 @@ import {
   SidebarContent,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Compass, LayoutDashboard, Settings, LifeBuoy } from "lucide-react";
+import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList } from "lucide-react";
 
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/progress", label: "Public Progress", icon: ClipboardList },
   { href: "#", label: "Settings", icon: Settings },
   { href: "#", label: "Help", icon: LifeBuoy },
 ];
@@ -39,7 +40,7 @@ export function SideNav() {
             <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href}
+                isActive={pathname.startsWith(item.href) && (item.href !== '#' || pathname === item.href)}
                 tooltip={item.label}
               >
                 <Link href={item.href}>

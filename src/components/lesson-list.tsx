@@ -37,7 +37,11 @@ export function LessonList({ lessons }: LessonListProps) {
 
     setActiveLessonId(lesson.id);
     const event = new CustomEvent("changeVideo", {
-      detail: { videoId: lesson.videoId, title: lesson.title },
+      detail: { 
+        videoId: lesson.videoId, 
+        title: lesson.title,
+        pdfUrl: lesson.pdfUrl
+      },
     });
     window.dispatchEvent(event);
 
