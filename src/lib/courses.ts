@@ -1,65 +1,80 @@
 import type { Course } from "./types";
-import fs from 'fs/promises';
-import path from 'path';
+import { db } from './firebase';
+import { 
+    collection, 
+    getDocs, 
+    doc, 
+    getDoc, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc,
+    query,
+    where,
+    limit
+} from "firebase/firestore";
 
-const coursesFilePath = path.join(process.cwd(), 'src', 'lib', 'data', 'courses.json');
-
-async function readCoursesFile(): Promise<Course[]> {
-    try {
-        const fileContent = await fs.readFile(coursesFilePath, 'utf-8');
-        return JSON.parse(fileContent);
-    } catch (error: any) {
-        if (error.code === 'ENOENT') {
-            await writeCoursesFile([]); // Create the file if it doesn't exist
-            return [];
-        }
-        throw error;
-    }
-}
-
-async function writeCoursesFile(courses: Course[]): Promise<void> {
-    await fs.writeFile(coursesFilePath, JSON.stringify(courses, null, 2), 'utf-8');
-}
+const coursesCollection = collection(db, 'courses');
 
 export async function getCourses(): Promise<Course[]> {
-  const courses = await readCoursesFile();
+  const snapshot = await getDocs(coursesCollection);
+  const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
   return courses;
 }
 
 export async function getCourseBySlug(slug: string): Promise<Course | undefined> {
-  const allCourses = await getCourses();
-  return allCourses.find(course => course.slug === slug);
+  const q = query(coursesCollection, where("slug", "==", slug), limit(1));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return undefined;
+  }
+  
+  const courseDoc = snapshot.docs[0];
+  return { id: courseDoc.id, ...courseDoc.data() } as Course;
 }
 
 export async function addCourse(courseData: Omit<Course, 'id'>): Promise<Course> {
-    const courses = await readCoursesFile();
-    const newCourse: Course = {
-        id: crypto.randomUUID(),
-        ...courseData
+    // Firestore doesn't like `undefined` values, so we clean the lessons
+    const cleanCourseData = {
+        ...courseData,
+        lessons: courseData.lessons.map(({id, ...rest}) => rest)
     };
-    courses.push(newCourse);
-    await writeCoursesFile(courses);
+
+    const docRef = await addDoc(coursesCollection, cleanCourseData);
+    
+    // We get the data back to ensure we have a consistent object
+    const newDoc = await getDoc(docRef);
+    const newCourse = { id: newDoc.id, ...newDoc.data() } as Course;
+
     return newCourse;
 }
 
 export async function updateCourse(courseId: string, courseData: Omit<Course, 'id'>): Promise<Course | undefined> {
-    const courses = await readCoursesFile();
-    const courseIndex = courses.findIndex(c => c.id === courseId);
-    if (courseIndex > -1) {
-        courses[courseIndex] = { id: courseId, ...courseData };
-        await writeCoursesFile(courses);
-        return courses[courseIndex];
+    const courseDocRef = doc(db, 'courses', courseId);
+    
+    const docSnap = await getDoc(courseDocRef);
+    if (!docSnap.exists()) {
+        return undefined;
     }
-    return undefined;
+    
+    // Firestore doesn't like `undefined` values from the form, so we clean the lessons
+    const cleanCourseData = {
+        ...courseData,
+        lessons: courseData.lessons.map(({id, ...rest}) => ({...rest}))
+    };
+    
+    await updateDoc(courseDocRef, cleanCourseData);
+    return { id: courseId, ...courseData };
 }
 
 export async function deleteCourse(courseId: string): Promise<boolean> {
-    let courses = await readCoursesFile();
-    const initialLength = courses.length;
-    courses = courses.filter(c => c.id !== courseId);
-    if (courses.length < initialLength) {
-        await writeCoursesFile(courses);
-        return true;
+    const courseDocRef = doc(db, 'courses', courseId);
+    
+    const docSnap = await getDoc(courseDocRef);
+    if (!docSnap.exists()) {
+        return false;
     }
-    return false;
+    
+    await deleteDoc(courseDocRef);
+    return true;
 }
