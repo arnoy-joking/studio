@@ -101,8 +101,16 @@ export default function ClassPage({
   }
 
   const totalDuration = course.lessons.reduce((acc, lesson) => {
-    const [minutes, seconds] = lesson.duration.split(':').map(Number);
-    return acc + minutes * 60 + seconds;
+    const parts = lesson.duration.split(':').map(Number);
+    let lessonSeconds = 0;
+    if (parts.length === 3) { // HH:MM:SS
+      lessonSeconds = (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+    } else if (parts.length === 2) { // MM:SS
+      lessonSeconds = (parts[0] * 60) + parts[1];
+    } else if (parts.length === 1) { // SS
+      lessonSeconds = parts[0];
+    }
+    return acc + lessonSeconds;
   }, 0);
 
   const hours = Math.floor(totalDuration / 3600);
