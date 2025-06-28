@@ -41,3 +41,17 @@ export async function getAllProgressAction(): Promise<Record<string, string[]>> 
     }
     return progressArrays;
 }
+
+export async function getLessonProgressAction(userId: string, lessonId: string) {
+    return await progressDb.getLessonProgress(userId, lessonId);
+}
+
+export async function updateLessonProgressAction(userId: string, courseId: string, lessonId: string, data: { seekTo: number }) {
+    try {
+        await progressDb.updateLessonProgress(userId, courseId, lessonId, data);
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update progress:", error);
+        return { success: false, message: "Failed to save progress." };
+    }
+}

@@ -11,20 +11,15 @@ declare global {
   }
 }
 
-// Manages loading the YouTube Iframe API script
 const loadYouTubeAPI = () => {
     if (typeof window === 'undefined') return;
-
-    // If script is already being managed, do nothing
     if (window.ytCallbacks) return;
-
-    // If script is already loaded (by other means), do nothing
     if (window.YT && window.YT.Player) return;
 
     window.ytCallbacks = [];
     window.onYouTubeIframeAPIReady = () => {
         window.ytCallbacks?.forEach(callback => callback());
-        window.ytCallbacks = undefined; // API is ready, no need for the queue anymore
+        window.ytCallbacks = undefined;
     };
 
     const tag = document.createElement('script');
@@ -36,22 +31,32 @@ interface VideoPlayerProps {
   videoId: string;
   title: string;
   onVideoEnd: () => void;
+  startTime?: number;
+  onProgress: (currentTime: number) => void;
 }
 
-export function VideoPlayer({ videoId, title, onVideoEnd }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgress }: VideoPlayerProps) {
   const playerRef = useRef<any>(null);
-  const playerContainerId = `youtube-player-${videoId}`;
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playerContainerId = `youtube-player-${videoId}-${Math.random()}`;
+
+  const cleanup = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+  }, []);
 
   const createPlayer = useCallback(() => {
-      // Don't create player if the container is not in the DOM
-      if (!document.getElementById(playerContainerId)) return;
+      if (!document.getElementById(playerContainerId) || !window.YT) return;
       
-      // Destroy previous player if it exists
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
+      cleanup();
 
-      const player = new window.YT.Player(playerContainerId, {
+      playerRef.current = new window.YT.Player(playerContainerId, {
         videoId: videoId,
         width: '100%',
         height: '100%',
@@ -59,36 +64,49 @@ export function VideoPlayer({ videoId, title, onVideoEnd }: VideoPlayerProps) {
           autoplay: 1,
           modestbranding: 1,
           rel: 0,
+          start: Math.floor(startTime),
         },
         events: {
           onStateChange: (event: any) => {
-            // YT.PlayerState.ENDED is 0
-            if (event.data === 0) { 
+            if (event.data === window.YT.PlayerState.ENDED) { 
               onVideoEnd();
+              if (intervalRef.current) clearInterval(intervalRef.current);
             }
           },
+          onReady: () => {
+            intervalRef.current = setInterval(() => {
+                if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+                    const currentTime = playerRef.current.getCurrentTime();
+                    if (currentTime > 0) {
+                        onProgress(currentTime);
+                    }
+                }
+            }, 15000);
+          }
         },
       });
-      playerRef.current = player;
-  }, [videoId, onVideoEnd, playerContainerId]);
+  }, [videoId, startTime, onVideoEnd, onProgress, playerContainerId, cleanup]);
 
   useEffect(() => {
     loadYouTubeAPI();
 
-    if (window.YT && window.YT.Player) {
-      createPlayer();
+    const initPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        createPlayer();
+      } else {
+        window.ytCallbacks?.push(createPlayer);
+      }
+    };
+    
+    const container = document.getElementById(playerContainerId);
+    if (container) {
+        initPlayer();
     } else {
-      window.ytCallbacks?.push(createPlayer);
+        setTimeout(initPlayer, 100);
     }
 
     return () => {
-      // Cleanup on unmount
-      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-      
-      // If API is not ready yet, remove our callback from the queue
+      cleanup();
       if (window.ytCallbacks) {
         const index = window.ytCallbacks.indexOf(createPlayer);
         if (index > -1) {
@@ -96,7 +114,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd }: VideoPlayerProps) {
         }
       }
     };
-  }, [createPlayer]);
+  }, [createPlayer, playerContainerId]);
 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border bg-muted">

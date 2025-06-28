@@ -1,9 +1,16 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Course, Lesson } from "@/lib/types";
 import { getCourseBySlug } from "@/lib/courses";
-import { getLastWatchedLessonIdAction, setLastWatchedLessonAction, getWatchedLessonIdsAction, markLessonAsWatchedAction } from "@/app/actions/progress-actions";
+import { 
+    getLastWatchedLessonIdAction, 
+    setLastWatchedLessonAction, 
+    getWatchedLessonIdsAction, 
+    markLessonAsWatchedAction,
+    getLessonProgressAction,
+    updateLessonProgressAction
+} from "@/app/actions/progress-actions";
 import { VideoPlayer } from "@/components/video-player";
 import { LessonList } from "@/components/lesson-list";
 import {
@@ -30,53 +37,65 @@ export default function ClassPage({
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [startTime, setStartTime] = useState(0);
   const { currentUser, isLoading: isUserLoading } = useUser();
 
-  useEffect(() => {
-    async function loadData() {
-      if (!currentUser) return;
-      setIsLoading(true);
-      
-      const [fetchedCourse, watchedLessonIds] = await Promise.all([
-          getCourseBySlug(params.slug),
-          getWatchedLessonIdsAction(currentUser.id)
-      ]);
-      
-      setWatchedLessons(watchedLessonIds);
+  const loadInitialData = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    
+    const [fetchedCourse, watchedLessonIds] = await Promise.all([
+        getCourseBySlug(params.slug),
+        getWatchedLessonIdsAction(userId)
+    ]);
+    
+    setWatchedLessons(watchedLessonIds);
 
-      if (fetchedCourse) {
-        setCourse(fetchedCourse);
-        
-        const lastWatchedLessonId = await getLastWatchedLessonIdAction(currentUser.id, fetchedCourse.id);
-        const initialLesson = fetchedCourse.lessons.find(l => l.id === lastWatchedLessonId) || fetchedCourse.lessons[0];
-        setCurrentLesson(initialLesson || null);
+    if (fetchedCourse) {
+      setCourse(fetchedCourse);
+      
+      const lastWatchedLessonId = await getLastWatchedLessonIdAction(userId, fetchedCourse.id);
+      const initialLesson = fetchedCourse.lessons.find(l => l.id === lastWatchedLessonId) || fetchedCourse.lessons[0];
+      
+      if (initialLesson) {
+        const progress = await getLessonProgressAction(userId, initialLesson.id);
+        setStartTime(progress?.seekTo || 0);
+        setCurrentLesson(initialLesson);
       }
-      setIsLoading(false);
     }
+    setIsLoading(false);
+  }, [params.slug]);
 
-    if (!isUserLoading) {
-        loadData();
+
+  useEffect(() => {
+    if (!isUserLoading && currentUser) {
+        loadInitialData(currentUser.id);
     }
-  }, [params.slug, currentUser, isUserLoading]);
+  }, [currentUser, isUserLoading, loadInitialData]);
 
-  const handleSelectLesson = (lesson: Lesson) => {
+  const handleSelectLesson = useCallback(async (lesson: Lesson) => {
     if (!currentUser || !course) return;
-    setCurrentLesson(lesson);
-    setLastWatchedLessonAction(currentUser.id, course.id, lesson.id);
-  };
+    setCurrentLesson(null); 
+    await setLastWatchedLessonAction(currentUser.id, course.id, lesson.id);
 
-  const handleVideoEnd = () => {
+    const progress = await getLessonProgressAction(currentUser.id, lesson.id);
+    
+    setStartTime(progress?.seekTo || 0);
+    setCurrentLesson(lesson);
+  }, [currentUser, course]);
+
+  const handleVideoEnd = useCallback(() => {
     if (!currentUser || !currentLesson || !course) return;
 
-    // Prevent re-marking if already watched
     if (watchedLessons.has(currentLesson.id)) return;
 
-    // Optimistically update UI
     setWatchedLessons(prev => new Set(prev).add(currentLesson.id));
-    
-    // Persist to DB
     markLessonAsWatchedAction(currentUser.id, currentLesson, course.id);
-  };
+  }, [currentUser, currentLesson, course, watchedLessons]);
+
+  const handleProgress = useCallback((time: number) => {
+    if (!currentUser || !currentLesson || !course || time === 0) return;
+    updateLessonProgressAction(currentUser.id, course.id, currentLesson.id, { seekTo: time });
+  }, [currentUser, currentLesson, course]);
 
 
   if (isLoading || isUserLoading) {
@@ -115,11 +134,11 @@ export default function ClassPage({
   const totalDuration = course.lessons.reduce((acc, lesson) => {
     const parts = lesson.duration.split(':').map(Number);
     let lessonSeconds = 0;
-    if (parts.length === 3) { // HH:MM:SS
+    if (parts.length === 3) {
       lessonSeconds = (parts[0] * 3600) + (parts[1] * 60) + parts[2];
-    } else if (parts.length === 2) { // MM:SS
+    } else if (parts.length === 2) {
       lessonSeconds = (parts[0] * 60) + parts[1];
-    } else if (parts.length === 1) { // SS
+    } else if (parts.length === 1) {
       lessonSeconds = parts[0];
     }
     return acc + lessonSeconds;
@@ -136,10 +155,12 @@ export default function ClassPage({
           <div className="lg:col-span-2 space-y-4">
             {currentLesson && (
               <VideoPlayer
-                key={currentLesson.videoId}
+                key={currentLesson.id}
                 videoId={currentLesson.videoId}
                 title={currentLesson.title}
                 onVideoEnd={handleVideoEnd}
+                startTime={startTime}
+                onProgress={handleProgress}
               />
             )}
             {currentLesson?.pdfUrl && (

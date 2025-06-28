@@ -8,7 +8,8 @@ import {
     query,
     where,
     Timestamp,
-    writeBatch
+    writeBatch,
+    updateDoc
 } from "firebase/firestore";
 import type { Lesson } from './types';
 
@@ -16,7 +17,7 @@ const progressCollection = collection(db, 'progress');
 const userActivityCollection = collection(db, 'userActivity');
 
 export async function getWatchedLessonIds(userId: string): Promise<Set<string>> {
-    const q = query(progressCollection, where("userId", "==", userId));
+    const q = query(progressCollection, where("userId", "==", userId), where("completed", "==", true));
     const snapshot = await getDocs(q);
     const watchedIds = new Set<string>();
     snapshot.forEach(doc => {
@@ -28,16 +29,23 @@ export async function getWatchedLessonIds(userId: string): Promise<Set<string>> 
 export async function markLessonAsWatched(userId: string, lesson: Lesson, courseId: string) {
     const progressId = `${userId}_${lesson.id}`;
     const progressRef = doc(db, 'progress', progressId);
-    await setDoc(progressRef, {
+    
+    const docSnap = await getDoc(progressRef);
+    const data = {
         userId,
         lessonId: lesson.id,
         courseId,
         videoId: lesson.videoId,
-        watchedAt: Timestamp.now(),
-    });
+        completed: true,
+        seekTo: 0,
+        updatedAt: Timestamp.now(),
+        ...(!docSnap.exists() && { watchedAt: Timestamp.now() })
+    };
+
+    await setDoc(progressRef, data, { merge: true });
 }
 
-export async function getLastWatchedLessonId(userId: string, courseId: string): Promise<string | null> {
+export async function getLastWatchedLessonId(userId: string, courseId:string): Promise<string | null> {
     const activityId = `${userId}_${courseId}`;
     const activityRef = doc(db, 'userActivity', activityId);
     const docSnap = await getDoc(activityRef);
@@ -59,7 +67,8 @@ export async function setLastWatchedLesson(userId: string, courseId: string, les
 }
 
 export async function getAllProgress(): Promise<Record<string, Set<string>>> {
-    const snapshot = await getDocs(progressCollection);
+    const q = query(progressCollection, where("completed", "==", true));
+    const snapshot = await getDocs(q);
     const allProgress: Record<string, Set<string>> = {};
 
     snapshot.forEach(doc => {
@@ -79,14 +88,12 @@ export async function getAllProgress(): Promise<Record<string, Set<string>>> {
 export async function deleteProgressForUser(userId: string): Promise<void> {
     const batch = writeBatch(db);
 
-    // Find and delete progress records
     const progressQuery = query(progressCollection, where("userId", "==", userId));
     const progressSnapshot = await getDocs(progressQuery);
     progressSnapshot.forEach(doc => {
         batch.delete(doc.ref);
     });
 
-    // Find and delete user activity records
     const activityQuery = query(userActivityCollection, where("userId", "==", userId));
     const activitySnapshot = await getDocs(activityQuery);
     activitySnapshot.forEach(doc => {
@@ -94,4 +101,37 @@ export async function deleteProgressForUser(userId: string): Promise<void> {
     });
     
     await batch.commit();
+}
+
+export async function getLessonProgress(userId: string, lessonId: string): Promise<{ seekTo?: number } | null> {
+    const progressId = `${userId}_${lessonId}`;
+    const progressRef = doc(db, 'progress', progressId);
+    const docSnap = await getDoc(progressRef);
+    if (docSnap.exists()) {
+        return docSnap.data();
+    }
+    return null;
+}
+
+export async function updateLessonProgress(userId: string, courseId: string, lessonId: string, data: { seekTo: number }) {
+    const progressId = `${userId}_${lessonId}`;
+    const progressRef = doc(db, 'progress', progressId);
+
+    const docSnap = await getDoc(progressRef);
+    if (docSnap.exists()) {
+        await updateDoc(progressRef, {
+            ...data,
+            updatedAt: Timestamp.now(),
+        });
+    } else {
+        await setDoc(progressRef, {
+            ...data,
+            userId,
+            courseId,
+            lessonId,
+            completed: false,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        });
+    }
 }
