@@ -1,50 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lesson } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayCircle, CheckCircle, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUser } from "@/context/user-context";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getWatchedLessonIdsAction, markLessonAsWatchedAction } from "@/app/actions/progress-actions";
 
 interface LessonListProps {
   lessons: Lesson[];
   activeLessonId: string;
   onLessonClick: (lesson: Lesson) => void;
-  courseId: string;
+  watchedLessons: Set<string>;
 }
-
-function parseDurationToMs(duration: string): number {
-    const parts = duration.split(':').map(Number);
-    let seconds = 0;
-    if (parts.length === 3) { // HH:MM:SS
-        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-    } else if (parts.length === 2) { // MM:SS
-        seconds = parts[0] * 60 + parts[1];
-    } else if (parts.length === 1) { // SS
-        seconds = parts[0];
-    }
-    return seconds * 1000;
-}
-
 
 export function LessonList({
   lessons,
   activeLessonId,
   onLessonClick,
-  courseId,
+  watchedLessons,
 }: LessonListProps) {
-  const { currentUser, isLoading } = useUser();
-  const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const lessonRefs = useRef<Map<string, HTMLLIElement | null>>(new Map());
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => setIsClient(true), []);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
     const activeLessonElement = lessonRefs.current.get(activeLessonId);
     if (activeLessonElement) {
       setTimeout(() => {
@@ -54,50 +38,11 @@ export function LessonList({
         });
       }, 100);
     }
-  }, [activeLessonId]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    setIsInitialLoad(true);
-    getWatchedLessonIdsAction(currentUser.id).then(watchedIds => {
-      setWatchedLessons(watchedIds);
-      setIsInitialLoad(false);
-    });
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser || !isClient || isInitialLoad) return;
-
-    const activeLesson = lessons.find((l) => l.id === activeLessonId);
-    if (activeLesson && !watchedLessons.has(activeLesson.id)) {
-      const durationInMs = parseDurationToMs(activeLesson.duration);
-      const timeoutId = setTimeout(() => {
-        setWatchedLessons((prev) => new Set(prev).add(activeLesson.id));
-        markLessonAsWatchedAction(currentUser.id, activeLesson, courseId);
-      }, durationInMs);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [lessons, currentUser, activeLessonId, courseId, isClient, watchedLessons, isInitialLoad]);
-
+  }, [activeLessonId, isClient]);
 
   const handleLessonClick = (lesson: Lesson) => {
     onLessonClick(lesson);
   };
-
-  if (isLoading || isInitialLoad) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Course Content</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 bg-muted rounded animate-pulse" />
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -105,7 +50,7 @@ export function LessonList({
         <CardTitle>Course Content</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] w-full">
+        <ScrollArea className="h-[480px] w-full">
             <ul className="space-y-1 pr-4">
             {lessons.map((lesson, index) => {
                 const isActive = lesson.id === activeLessonId;
@@ -123,37 +68,37 @@ export function LessonList({
                     className="flex-1 flex items-start gap-4 p-3 text-left"
                     onClick={() => handleLessonClick(lesson)}
                     >
-                    <div className="flex flex-col items-center pt-1">
-                        {isClient ? (
-                        isActive ? (
-                            <PlayCircle className="w-6 h-6 text-primary" />
-                        ) : isWatched ? (
-                            <CheckCircle className="w-6 h-6 text-green-600" />
-                        ) : (
-                            <span className="font-bold text-lg text-muted-foreground w-6 text-center">
-                            {index + 1}
-                            </span>
-                        )
-                        ) : (
-                            <span className="font-bold text-lg text-muted-foreground w-6 text-center">
+                        <div className="flex flex-col items-center pt-1">
+                          {isClient ? (
+                            isActive ? (
+                                <PlayCircle className="w-6 h-6 text-primary" />
+                            ) : isWatched ? (
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            ) : (
+                                <span className="font-bold text-lg text-muted-foreground w-6 text-center">
+                                {index + 1}
+                                </span>
+                            )
+                          ) : (
+                             <span className="font-bold text-lg text-muted-foreground w-6 text-center">
                                 {index + 1}
                             </span>
-                        )}
-                    </div>
+                          )}
+                        </div>
 
-                    <div className="flex-1">
-                        <p
-                        className={cn(
-                            "font-medium leading-snug",
-                            isActive && "text-primary"
-                        )}
-                        >
-                        {lesson.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                        {lesson.duration}
-                        </p>
-                    </div>
+                        <div className="flex-1">
+                            <p
+                            className={cn(
+                                "font-medium leading-snug",
+                                isActive && "text-primary"
+                            )}
+                            >
+                            {lesson.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                            {lesson.duration}
+                            </p>
+                        </div>
                     </button>
                     {lesson.pdfUrl &&
                         <a

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Course, Lesson } from "@/lib/types";
 import { getCourseBySlug } from "@/lib/courses";
-import { getLastWatchedLessonIdAction, setLastWatchedLessonAction } from "@/app/actions/progress-actions";
+import { getLastWatchedLessonIdAction, setLastWatchedLessonAction, getWatchedLessonIdsAction, markLessonAsWatchedAction } from "@/app/actions/progress-actions";
 import { VideoPlayer } from "@/components/video-player";
 import { LessonList } from "@/components/lesson-list";
 import {
@@ -28,15 +28,22 @@ export default function ClassPage({
 }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+  const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser, isLoading: isUserLoading } = useUser();
 
   useEffect(() => {
-    async function loadCourse() {
+    async function loadData() {
       if (!currentUser) return;
       setIsLoading(true);
       
-      const fetchedCourse = await getCourseBySlug(params.slug);
+      const [fetchedCourse, watchedLessonIds] = await Promise.all([
+          getCourseBySlug(params.slug),
+          getWatchedLessonIdsAction(currentUser.id)
+      ]);
+      
+      setWatchedLessons(watchedLessonIds);
+
       if (fetchedCourse) {
         setCourse(fetchedCourse);
         
@@ -48,7 +55,7 @@ export default function ClassPage({
     }
 
     if (!isUserLoading) {
-        loadCourse();
+        loadData();
     }
   }, [params.slug, currentUser, isUserLoading]);
 
@@ -57,6 +64,20 @@ export default function ClassPage({
     setCurrentLesson(lesson);
     setLastWatchedLessonAction(currentUser.id, course.id, lesson.id);
   };
+
+  const handleVideoEnd = () => {
+    if (!currentUser || !currentLesson || !course) return;
+
+    // Prevent re-marking if already watched
+    if (watchedLessons.has(currentLesson.id)) return;
+
+    // Optimistically update UI
+    setWatchedLessons(prev => new Set(prev).add(currentLesson.id));
+    
+    // Persist to DB
+    markLessonAsWatchedAction(currentUser.id, currentLesson, course.id);
+  };
+
 
   if (isLoading || isUserLoading) {
      return (
@@ -69,7 +90,7 @@ export default function ClassPage({
                         <Skeleton className="h-64 w-full rounded-lg" />
                     </div>
                     <div className="lg:sticky lg:top-24">
-                       <Skeleton className="h-96 w-full rounded-lg" />
+                       <Skeleton className="h-[480px] w-full rounded-lg" />
                     </div>
                 </div>
             </div>
@@ -118,6 +139,7 @@ export default function ClassPage({
                 key={currentLesson.videoId}
                 videoId={currentLesson.videoId}
                 title={currentLesson.title}
+                onVideoEnd={handleVideoEnd}
               />
             )}
             {currentLesson?.pdfUrl && (
@@ -148,9 +170,9 @@ export default function ClassPage({
           <div className="lg:sticky lg:top-24">
             <LessonList
               lessons={course.lessons}
-              courseId={course.id}
               activeLessonId={currentLesson?.id || ""}
               onLessonClick={handleSelectLesson}
+              watchedLessons={watchedLessons}
             />
           </div>
         </div>
