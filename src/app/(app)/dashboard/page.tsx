@@ -8,11 +8,15 @@ import type { Course } from '@/lib/types';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type ProgressData = Record<string, Set<string>>;
+
 export default function DashboardPage() {
   const { currentUser, isLoading: isUserLoading } = useUser();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [watchedLessonsCount, setWatchedLessonsCount] = useState(0);
+  const [progress, setProgress] = useState<ProgressData>({});
+
 
   useEffect(() => {
     async function loadCourses() {
@@ -26,18 +30,25 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!currentUser || courses.length === 0) return;
 
-    const allLessons = courses.flatMap(c => c.lessons);
-    let count = 0;
-    for (const lesson of allLessons) {
-        try {
-            if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
-                count++;
+    const progressData: ProgressData = {};
+    let totalWatchedCount = 0;
+
+    for (const course of courses) {
+        progressData[course.id] = new Set();
+        for (const lesson of course.lessons) {
+            try {
+                if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
+                    progressData[course.id].add(lesson.id);
+                }
+            } catch (e) {
+                // localStorage not available
             }
-        } catch (e) {
-            // localStorage not available
         }
+        totalWatchedCount += progressData[course.id].size;
     }
-    setWatchedLessonsCount(count);
+    
+    setProgress(progressData);
+    setWatchedLessonsCount(totalWatchedCount);
   }, [currentUser, courses]);
 
 
@@ -69,7 +80,7 @@ export default function DashboardPage() {
         </h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-8">
-            <CourseList courses={courses} />
+            <CourseList courses={courses} progress={progress} />
           </div>
           <div className="space-y-8 lg:sticky lg:top-24">
             <ClassGoalCard watchedCount={watchedLessonsCount} />

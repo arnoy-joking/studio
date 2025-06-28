@@ -11,21 +11,21 @@ interface ClassGoalCardProps {
   watchedCount: number;
 }
 
-const WEEKLY_GOAL = 4;
+const DAILY_GOAL = 4;
 
 export function ClassGoalCard({
   watchedCount,
 }: ClassGoalCardProps) {
-  const remaining = Math.max(0, WEEKLY_GOAL - watchedCount);
+  const remaining = Math.max(0, DAILY_GOAL - watchedCount);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target />
-          Weekly Goal
+          Daily Goal
         </CardTitle>
-        <CardDescription>Your goal is to watch {WEEKLY_GOAL} classes this week.</CardDescription>
+        <CardDescription>Your goal is to watch {DAILY_GOAL} classes today.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
@@ -44,7 +44,7 @@ export function ClassGoalCard({
           </div>
           {remaining === 0 && watchedCount > 0 && (
              <p className="text-sm font-medium text-center text-green-600 pt-2">
-                Great job! You've met your weekly goal!
+                Great job! You've met your daily goal!
              </p>
           )}
       </CardContent>
