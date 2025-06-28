@@ -90,7 +90,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
             slug: '',
             description: '',
             thumbnail: '',
-            lessons: [{ title: '', duration: '00:00:00', videoId: '', pdfUrl: '' }],
+            lessons: [{ id: crypto.randomUUID(), title: '', duration: '00:00:00', videoId: '', pdfUrl: '' }],
         },
     });
 
@@ -136,9 +136,15 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
 
     const onSubmit = async (data: CourseFormData) => {
         setIsSubmitting(true);
+        
+        const coursePayload = {
+            ...data,
+            lessons: data.lessons.map(l => ({ ...l, id: l.id || crypto.randomUUID() }))
+        };
+
         const result = course 
-            ? await updateCourseAction(course.id, { ...data, lessons: data.lessons.map(l => ({ ...l, id: l.id || crypto.randomUUID() })) })
-            : await addCourseAction({ ...data, lessons: data.lessons.map(l => ({ ...l, id: crypto.randomUUID() })) });
+            ? await updateCourseAction(course.id, coursePayload)
+            : await addCourseAction(coursePayload);
 
         setIsSubmitting(false);
 
@@ -179,7 +185,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
                                 </Button>
                             </div>
                         ))}
-                        <Button type="button" variant="outline" onClick={() => append({ title: '', duration: '00:00:00', videoId: '', pdfUrl: '' })}>
+                        <Button type="button" variant="outline" onClick={() => append({ id: crypto.randomUUID(), title: '', duration: '00:00:00', videoId: '', pdfUrl: '' })}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
                         </Button>
                     </TabsContent>

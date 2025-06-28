@@ -34,13 +34,7 @@ export async function getCourseBySlug(slug: string): Promise<Course | undefined>
 }
 
 export async function addCourse(courseData: Omit<Course, 'id'>): Promise<Course> {
-    // Firestore doesn't like `undefined` values, so we clean the lessons
-    const cleanCourseData = {
-        ...courseData,
-        lessons: courseData.lessons.map(({id, ...rest}) => rest)
-    };
-
-    const docRef = await addDoc(coursesCollection, cleanCourseData);
+    const docRef = await addDoc(coursesCollection, { ...courseData });
     
     // We get the data back to ensure we have a consistent object
     const newDoc = await getDoc(docRef);
@@ -57,13 +51,7 @@ export async function updateCourse(courseId: string, courseData: Omit<Course, 'i
         return undefined;
     }
     
-    // Firestore doesn't like `undefined` values from the form, so we clean the lessons
-    const cleanCourseData = {
-        ...courseData,
-        lessons: courseData.lessons.map(({id, ...rest}) => ({...rest}))
-    };
-    
-    await updateDoc(courseDocRef, cleanCourseData);
+    await updateDoc(courseDocRef, { ...courseData });
     return { id: courseId, ...courseData };
 }
 

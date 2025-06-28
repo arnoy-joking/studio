@@ -2,13 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { addCourse, deleteCourse, updateCourse, getCourses } from '@/lib/courses';
-import type { Course, Lesson } from '@/lib/types';
+import type { Course } from '@/lib/types';
 
 export async function getCoursesAction() {
     return await getCourses();
 }
 
-export async function addCourseAction(courseData: Omit<Course, 'id' | 'lessons'> & { lessons: Omit<Lesson, 'id'>[] }) {
+export async function addCourseAction(courseData: Omit<Course, 'id'>) {
     try {
         await addCourse(courseData);
         revalidatePath('/dashboard');
