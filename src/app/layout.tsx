@@ -3,10 +3,12 @@ import { Inter, Source_Code_Pro } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-inter",
 });
 
 const sourceCodePro = Source_Code_Pro({
@@ -26,9 +28,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={sourceCodePro.variable}>
+    <html lang="en" suppressHydrationWarning className={cn(inter.variable, sourceCodePro.variable)}>
       <head />
-      <body className={inter.className}>
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
