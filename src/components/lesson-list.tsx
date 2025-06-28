@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/context/user-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getWatchedLessonIdsAction, markLessonAsWatchedAction } from "@/app/actions/progress-actions";
 
 interface LessonListProps {
   lessons: Lesson[];
@@ -38,6 +39,7 @@ export function LessonList({
 }: LessonListProps) {
   const { currentUser, isLoading } = useUser();
   const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const lessonRefs = useRef<Map<string, HTMLLIElement | null>>(new Map());
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
@@ -56,44 +58,33 @@ export function LessonList({
 
   useEffect(() => {
     if (!currentUser) return;
-
-    const storedWatched = new Set<string>();
-    lessons.forEach((lesson) => {
-      try {
-        if (
-          localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === "watched"
-        ) {
-          storedWatched.add(lesson.id);
-        }
-      } catch (e) {
-        // localStorage not available
-      }
+    setIsInitialLoad(true);
+    getWatchedLessonIdsAction(currentUser.id).then(watchedIds => {
+      setWatchedLessons(watchedIds);
+      setIsInitialLoad(false);
     });
-    setWatchedLessons(storedWatched);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser || !isClient || isInitialLoad) return;
 
     const activeLesson = lessons.find((l) => l.id === activeLessonId);
     if (activeLesson && !watchedLessons.has(activeLesson.id)) {
       const durationInMs = parseDurationToMs(activeLesson.duration);
       const timeoutId = setTimeout(() => {
         setWatchedLessons((prev) => new Set(prev).add(activeLesson.id));
-        try {
-          localStorage.setItem(
-            `progress_${currentUser.id}_${activeLesson.videoId}`,
-            "watched"
-          );
-        } catch (e) {
-          // localStorage not available
-        }
-      }, durationInMs); // Use full lesson duration
+        markLessonAsWatchedAction(currentUser.id, activeLesson, courseId);
+      }, durationInMs);
       return () => clearTimeout(timeoutId);
     }
-  }, [lessons, currentUser, activeLessonId]);
+  }, [lessons, currentUser, activeLessonId, courseId, isClient, watchedLessons, isInitialLoad]);
+
 
   const handleLessonClick = (lesson: Lesson) => {
     onLessonClick(lesson);
   };
 
-  if (isLoading) {
+  if (isLoading || isInitialLoad) {
     return (
       <Card>
         <CardHeader>

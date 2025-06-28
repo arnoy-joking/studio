@@ -13,15 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle } from 'lucide-react';
-import { useUser } from '@/context/user-context';
-import { addUser as apiAddUser } from '@/lib/users';
+import { Loader2 } from 'lucide-react';
+import { addUserAction } from '@/app/actions/user-actions';
 import { useToast } from '@/hooks/use-toast';
 
-export function AddUserDialog() {
-    const { setUsers } = useUser();
+export function AddUserDialog({ onUserAdded, children }: { onUserAdded: () => void, children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
     const handleAddUser = async (e: React.FormEvent) => {
@@ -30,24 +29,28 @@ export function AddUserDialog() {
             toast({ title: "Error", description: "Name cannot be empty.", variant: "destructive" });
             return;
         }
+        setIsSubmitting(true);
         try {
-            const newUser = await apiAddUser(name.trim());
-            setUsers(prevUsers => [...prevUsers, newUser]);
-            toast({ title: "Success", description: `Profile "${name}" added.` });
-            setName('');
-            setIsOpen(false);
+            const result = await addUserAction(name.trim());
+            if (result.success) {
+                toast({ title: "Success", description: `Profile "${name}" added.` });
+                onUserAdded();
+                setName('');
+                setIsOpen(false);
+            } else {
+                toast({ title: "Error", description: result.message || "Failed to add profile.", variant: "destructive" });
+            }
         } catch (error) {
              toast({ title: "Error", description: "Failed to add profile.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Profile
-                </Button>
+                {children}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleAddUser}>
@@ -76,7 +79,10 @@ export function AddUserDialog() {
                         <DialogClose asChild>
                             <Button type="button" variant="ghost">Cancel</Button>
                         </DialogClose>
-                        <Button type="submit">Add Profile</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Add Profile
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

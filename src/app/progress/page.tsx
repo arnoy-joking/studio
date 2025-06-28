@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Compass, User, CheckCircle } from 'lucide-react';
-import { getUsers } from '@/lib/users';
 import { getCoursesAction } from '@/app/actions/course-actions';
+import { getUsersAction } from '@/app/actions/user-actions';
+import { getAllProgressAction } from '@/app/actions/progress-actions';
 import type { User as UserType, Course, Lesson } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,24 +23,17 @@ export default function ProgressPage() {
     useEffect(() => {
         async function loadData() {
             setIsLoading(true);
-            const [fetchedUsers, fetchedCourses] = await Promise.all([getUsers(), getCoursesAction()]);
+            const [fetchedUsers, fetchedCourses, allProgress] = await Promise.all([
+                getUsersAction(), 
+                getCoursesAction(),
+                getAllProgressAction()
+            ]);
             setUsers(fetchedUsers);
             setCourses(fetchedCourses);
 
-            const allLessons = fetchedCourses.flatMap(c => c.lessons);
             const progressData: ProgressData = {};
-            
-            for (const user of fetchedUsers) {
-                progressData[user.id] = new Set();
-                for (const lesson of allLessons) {
-                    try {
-                        if (localStorage.getItem(`progress_${user.id}_${lesson.videoId}`) === 'watched') {
-                            progressData[user.id].add(lesson.id);
-                        }
-                    } catch (e) {
-                        // localstorage not available
-                    }
-                }
+            for (const userId in allProgress) {
+                progressData[userId] = new Set(allProgress[userId]);
             }
             
             setProgress(progressData);

@@ -18,15 +18,20 @@ export function UserProvider({ children, initialUsers }: { children: ReactNode; 
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        setIsLoading(true);
         try {
             const lastUserId = localStorage.getItem('currentUser');
-            const user = users.find(u => u.id === lastUserId);
-            setCurrentUserInternal(user || users[0] || null);
+            if (lastUserId) {
+                const user = users.find(u => u.id === lastUserId);
+                setCurrentUserInternal(user || null);
+            } else {
+                setCurrentUserInternal(null);
+            }
         } catch (error) {
-            // localStorage is not available
-            setCurrentUserInternal(users[0] || null)
+            setCurrentUserInternal(null)
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [users]);
     
     const setCurrentUser = (user: User | null) => {

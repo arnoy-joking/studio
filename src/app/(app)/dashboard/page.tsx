@@ -4,6 +4,7 @@ import { CourseList } from "@/components/dashboard/course-list";
 import { GoalsCard } from "@/components/dashboard/goals-card";
 import { ClassGoalCard } from "@/components/dashboard/progress-summary-card";
 import { getCoursesAction } from '@/app/actions/course-actions';
+import { getWatchedLessonIdsAction } from '@/app/actions/progress-actions';
 import type { Course } from '@/lib/types';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,47 +14,45 @@ type ProgressData = Record<string, Set<string>>;
 export default function DashboardPage() {
   const { currentUser, isLoading: isUserLoading } = useUser();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [watchedLessonsCount, setWatchedLessonsCount] = useState(0);
   const [progress, setProgress] = useState<ProgressData>({});
 
-
   useEffect(() => {
-    async function loadCourses() {
-      setIsLoadingCourses(true);
-      const fetchedCourses = await getCoursesAction();
+    async function loadData() {
+      if (!currentUser) return;
+      setIsLoading(true);
+      const [fetchedCourses, watchedLessonIds] = await Promise.all([
+        getCoursesAction(),
+        getWatchedLessonIdsAction(currentUser.id)
+      ]);
       setCourses(fetchedCourses);
-      setIsLoadingCourses(false);
+
+      const progressDataSets: ProgressData = {};
+      fetchedCourses.forEach(c => {
+        progressDataSets[c.id] = new Set();
+      });
+
+      fetchedCourses.forEach(course => {
+        course.lessons.forEach(lesson => {
+          if (watchedLessonIds.has(lesson.id)) {
+            progressDataSets[course.id].add(lesson.id);
+          }
+        });
+      });
+
+      setProgress(progressDataSets);
+      setWatchedLessonsCount(watchedLessonIds.size);
+      setIsLoading(false);
     }
-    loadCourses();
-  }, []);
 
-  useEffect(() => {
-    if (!currentUser || courses.length === 0) return;
-
-    const progressData: ProgressData = {};
-    let totalWatchedCount = 0;
-
-    for (const course of courses) {
-        progressData[course.id] = new Set();
-        for (const lesson of course.lessons) {
-            try {
-                if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
-                    progressData[course.id].add(lesson.id);
-                }
-            } catch (e) {
-                // localStorage not available
-            }
-        }
-        totalWatchedCount += progressData[course.id].size;
+    if (!isUserLoading) {
+      loadData();
     }
-    
-    setProgress(progressData);
-    setWatchedLessonsCount(totalWatchedCount);
-  }, [currentUser, courses]);
+  }, [currentUser, isUserLoading]);
 
 
-  if (isUserLoading || isLoadingCourses) {
+  if (isLoading || isUserLoading) {
     return (
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">

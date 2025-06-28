@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Course, Lesson } from "@/lib/types";
 import { getCourseBySlug } from "@/lib/courses";
+import { getLastWatchedLessonIdAction, setLastWatchedLessonAction } from "@/app/actions/progress-actions";
 import { VideoPlayer } from "@/components/video-player";
 import { LessonList } from "@/components/lesson-list";
 import {
@@ -39,13 +40,7 @@ export default function ClassPage({
       if (fetchedCourse) {
         setCourse(fetchedCourse);
         
-        let lastWatchedLessonId: string | null = null;
-        try {
-           lastWatchedLessonId = localStorage.getItem(`last_watched_lesson_${currentUser.id}_${fetchedCourse.id}`);
-        } catch (e) {
-          // localStorage not available
-        }
-
+        const lastWatchedLessonId = await getLastWatchedLessonIdAction(currentUser.id, fetchedCourse.id);
         const initialLesson = fetchedCourse.lessons.find(l => l.id === lastWatchedLessonId) || fetchedCourse.lessons[0];
         setCurrentLesson(initialLesson || null);
       }
@@ -60,11 +55,7 @@ export default function ClassPage({
   const handleSelectLesson = (lesson: Lesson) => {
     if (!currentUser || !course) return;
     setCurrentLesson(lesson);
-    try {
-        localStorage.setItem(`last_watched_lesson_${currentUser.id}_${course.id}`, lesson.id);
-    } catch (e) {
-        // localStorage not available
-    }
+    setLastWatchedLessonAction(currentUser.id, course.id, lesson.id);
   };
 
   if (isLoading || isUserLoading) {

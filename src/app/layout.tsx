@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { UserProvider } from "@/context/user-context";
+import { getUsers } from "@/lib/users";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,24 +24,27 @@ export const metadata: Metadata = {
   description: "Your guide to mastering new skills.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const users = await getUsers();
   return (
     <html lang="en" suppressHydrationWarning className={cn(inter.variable, sourceCodePro.variable)}>
       <head />
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <UserProvider initialUsers={users}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </UserProvider>
       </body>
     </html>
   );

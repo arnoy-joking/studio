@@ -33,14 +33,14 @@ export function CourseList({ courses, progress }: CourseListProps) {
           return (
              <div
               key={course.id}
-              className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+              className="flex flex-col md:flex-row items-start gap-6 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
             >
               <Image
                 src={course.thumbnail}
                 alt={course.title}
-                width={160}
-                height={90}
-                className="rounded-md aspect-video object-cover"
+                width={240}
+                height={135}
+                className="rounded-md aspect-video object-cover w-full md:w-60 flex-shrink-0"
                 data-ai-hint="online course"
               />
               <div className="flex-1">
@@ -49,7 +49,7 @@ export function CourseList({ courses, progress }: CourseListProps) {
                   {course.description}
                 </p>
               </div>
-              <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0 self-center">
+              <div className="flex md:flex-col gap-2 w-full md:w-auto mt-4 md:mt-0 self-center">
                  <Button asChild className="w-full">
                   <Link href={`/class/${course.slug}`}>
                     <BookOpen className="mr-2" />

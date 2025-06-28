@@ -10,18 +10,26 @@ import {
   SidebarContent,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList, Lock } from "lucide-react";
+import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList, Lock, UserPlus } from "lucide-react";
+import { AddUserDialog } from "./add-user-dialog";
+import { useUser } from "@/context/user-context";
+import { getUsersAction } from "@/app/actions/user-actions";
+import { Button } from "../ui/button";
 
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/progress", label: "Public Progress", icon: ClipboardList },
   { href: "/manage-courses", label: "Manage Courses", icon: Lock },
-  { href: "#", label: "Settings", icon: Settings },
-  { href: "#", label: "Help", icon: LifeBuoy },
 ];
 
 export function SideNav() {
   const pathname = usePathname();
+  const { setUsers } = useUser();
+
+  const refreshUsers = async () => {
+      const updatedUsers = await getUsersAction();
+      setUsers(updatedUsers);
+  };
 
   return (
     <>
@@ -53,7 +61,13 @@ export function SideNav() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="p-2 border-t border-sidebar-border">
+         <AddUserDialog onUserAdded={refreshUsers}>
+            <Button variant="outline" className="w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-2">
+                <UserPlus />
+                <span className="group-data-[collapsible=icon]:hidden">Add Profile</span>
+            </Button>
+        </AddUserDialog>
         <div className="group-data-[collapsible=icon]:hidden text-xs text-center p-4 text-sidebar-foreground/60">
             &copy; {new Date().getFullYear()} Course Compass
         </div>

@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { LogOut, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/context/user-context";
-import { AddUserDialog } from "./add-user-dialog";
 import { ThemeToggle } from "../theme-toggle";
 
 export function Header() {
@@ -37,7 +36,6 @@ export function Header() {
       <SidebarTrigger />
       <div className="flex-1" />
       <ThemeToggle />
-      <AddUserDialog />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -73,7 +71,7 @@ export function Header() {
           </DropdownMenuRadioGroup>
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem onClick={() => setCurrentUser(null)} asChild>
             <Link href="/login">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
