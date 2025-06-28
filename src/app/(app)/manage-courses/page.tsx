@@ -52,6 +52,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Trash2, Edit, Loader2, Lock, X } from 'lucide-react';
 import { addCourseAction, deleteCourseAction, updateCourseAction } from '@/app/actions/course-actions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,6 +79,7 @@ type CourseFormData = z.infer<typeof courseSchema>;
 function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; onFormSubmit: () => void; closeDialog: () => void }) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [bulkText, setBulkText] = useState('');
     
     const form = useForm<CourseFormData>({
         resolver: zodResolver(courseSchema),
@@ -93,10 +95,45 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "lessons",
     });
+
+    const handleParseBulkLessons = () => {
+        const lines = bulkText.split('\n').filter(line => line.trim() !== '');
+        const newLessons: Omit<Lesson, 'id'>[] = [];
+        let errors = 0;
+
+        lines.forEach((line, index) => {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length === 4) {
+                newLessons.push({
+                    title: parts[1],
+                    duration: parts[2],
+                    videoId: parts[0],
+                    pdfUrl: parts[3]
+                });
+            } else {
+                errors++;
+            }
+        });
+
+        if (newLessons.length > 0) {
+            replace(newLessons.map(l => ({...l, id: crypto.randomUUID()})));
+            toast({
+                title: 'Lessons Parsed',
+                description: `Successfully added ${newLessons.length} lessons. ${errors > 0 ? `${errors} lines had formatting issues and were ignored.` : ''}`
+            });
+        } else {
+            toast({
+                title: 'Parsing Failed',
+                description: 'No valid lessons found. Please check the format and try again.',
+                variant: 'destructive'
+            });
+        }
+    };
+
 
     const onSubmit = async (data: CourseFormData) => {
         setIsSubmitting(true);
@@ -125,23 +162,47 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
                     <FormField control={form.control} name="thumbnail" render={({ field }) => ( <FormItem><FormLabel>Thumbnail URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Lessons</h3>
-                    {fields.map((field, index) => (
-                        <div key={field.id} className="p-4 border rounded-lg space-y-4 relative">
-                            <FormField control={form.control} name={`lessons.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Lesson Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name={`lessons.${index}.duration`} render={({ field }) => ( <FormItem><FormLabel>Duration (HH:MM:SS)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name={`lessons.${index}.videoId`} render={({ field }) => ( <FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name={`lessons.${index}.pdfUrl`} render={({ field }) => ( <FormItem><FormLabel>PDF URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                <Tabs defaultValue="manual" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+                        <TabsTrigger value="bulk">Bulk Add</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="manual" className="space-y-4 pt-4">
+                        <h3 className="text-lg font-medium">Lessons</h3>
+                        {fields.map((field, index) => (
+                            <div key={field.id} className="p-4 border rounded-lg space-y-4 relative">
+                                <FormField control={form.control} name={`lessons.${index}.title`} render={({ field }) => ( <FormItem><FormLabel>Lesson Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name={`lessons.${index}.duration`} render={({ field }) => ( <FormItem><FormLabel>Duration (HH:MM:SS)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name={`lessons.${index}.videoId`} render={({ field }) => ( <FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name={`lessons.${index}.pdfUrl`} render={({ field }) => ( <FormItem><FormLabel>PDF URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                        <Button type="button" variant="outline" onClick={() => append({ title: '', duration: '00:00:00', videoId: '', pdfUrl: '' })}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
+                        </Button>
+                    </TabsContent>
+                    <TabsContent value="bulk" className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="bulk-lessons">Bulk Add Lessons</Label>
+                            <FormDescription>
+                                Add lessons using the format: `Video ID | Title | Duration (HH:MM:SS) | PDF URL`. Each lesson on a new line.
+                            </FormDescription>
+                            <Textarea
+                                id="bulk-lessons"
+                                value={bulkText}
+                                onChange={(e) => setBulkText(e.target.value)}
+                                rows={10}
+                                placeholder="SqcY0GlETPk | What is React? | 00:10:32 | https://example.com/react-1.pdf&#10;9S6M2i_S8s | Setting Up Your Environment | 00:15:10 | https://example.com/react-2.pdf"
+                                className="font-code text-xs"
+                            />
                         </div>
-                    ))}
-                    <Button type="button" variant="outline" onClick={() => append({ title: '', duration: '00:00:00', videoId: '', pdfUrl: '' })}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Lesson
-                    </Button>
-                </div>
+                        <Button type="button" onClick={handleParseBulkLessons}>Parse & Add Lessons</Button>
+                    </TabsContent>
+                </Tabs>
+
 
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
