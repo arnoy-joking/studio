@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import type { Course } from "@/lib/types";
+import type { Course, Lesson } from "@/lib/types";
 import { getCourseBySlug } from "@/lib/courses";
 import { VideoPlayer } from "@/components/video-player";
 import { LessonList } from "@/components/lesson-list";
@@ -17,6 +17,7 @@ import { Clock, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/context/user-context";
 
 
 export default function ClassPage({
@@ -25,35 +26,48 @@ export default function ClassPage({
   params: { slug: string };
 }) {
   const [course, setCourse] = useState<Course | null>(null);
-  const [currentPdfUrl, setCurrentPdfUrl] = useState<string>('');
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser, isLoading: isUserLoading } = useUser();
 
   useEffect(() => {
     async function loadCourse() {
+      if (!currentUser) return;
+      setIsLoading(true);
+      
       const fetchedCourse = await getCourseBySlug(params.slug);
       if (fetchedCourse) {
         setCourse(fetchedCourse);
-        setCurrentPdfUrl(fetchedCourse.lessons[0]?.pdfUrl || '');
+        
+        let lastWatchedLessonId: string | null = null;
+        try {
+           lastWatchedLessonId = localStorage.getItem(`last_watched_lesson_${currentUser.id}_${fetchedCourse.id}`);
+        } catch (e) {
+          // localStorage not available
+        }
+
+        const initialLesson = fetchedCourse.lessons.find(l => l.id === lastWatchedLessonId) || fetchedCourse.lessons[0];
+        setCurrentLesson(initialLesson || null);
       }
       setIsLoading(false);
     }
-    loadCourse();
-  }, [params.slug]);
 
-  useEffect(() => {
-    const handleVideoChange = (event: CustomEvent) => {
-      if (event.detail.pdfUrl) {
-        setCurrentPdfUrl(event.detail.pdfUrl);
-      }
-    };
+    if (!isUserLoading) {
+        loadCourse();
+    }
+  }, [params.slug, currentUser, isUserLoading]);
 
-    window.addEventListener("changeVideo", handleVideoChange as EventListener);
-    return () => {
-      window.removeEventListener("changeVideo", handleVideoChange as EventListener);
-    };
-  }, []);
+  const handleSelectLesson = (lesson: Lesson) => {
+    if (!currentUser || !course) return;
+    setCurrentLesson(lesson);
+    try {
+        localStorage.setItem(`last_watched_lesson_${currentUser.id}_${course.id}`, lesson.id);
+    } catch (e) {
+        // localStorage not available
+    }
+  };
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
      return (
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
@@ -100,13 +114,16 @@ export default function ClassPage({
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-4">
-            <VideoPlayer
-              initialVideoId={course.lessons[0].videoId}
-              initialTitle={course.lessons[0].title}
-            />
-            {currentPdfUrl && (
+            {currentLesson && (
+              <VideoPlayer
+                key={currentLesson.videoId}
+                videoId={currentLesson.videoId}
+                title={currentLesson.title}
+              />
+            )}
+            {currentLesson?.pdfUrl && (
                  <Button asChild>
-                    <a href={currentPdfUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={currentLesson.pdfUrl} target="_blank" rel="noopener noreferrer">
                         <Download className="mr-2 h-4 w-4" />
                         Download PDF for current lesson
                     </a>
@@ -130,7 +147,12 @@ export default function ClassPage({
             </Card>
           </div>
           <div className="lg:sticky lg:top-24">
-            <LessonList lessons={course.lessons} />
+            <LessonList
+              lessons={course.lessons}
+              courseId={course.id}
+              activeLessonId={currentLesson?.id || ""}
+              onLessonClick={handleSelectLesson}
+            />
           </div>
         </div>
       </div>

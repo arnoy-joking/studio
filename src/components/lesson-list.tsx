@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Lesson } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayCircle, CheckCircle, Download } from "lucide-react";
@@ -9,20 +9,42 @@ import { useUser } from "@/context/user-context";
 
 interface LessonListProps {
   lessons: Lesson[];
+  activeLessonId: string;
+  onLessonClick: (lesson: Lesson) => void;
+  courseId: string;
 }
 
-export function LessonList({ lessons }: LessonListProps) {
+export function LessonList({
+  lessons,
+  activeLessonId,
+  onLessonClick,
+  courseId,
+}: LessonListProps) {
   const { currentUser, isLoading } = useUser();
-  const [activeLessonId, setActiveLessonId] = useState(lessons[0]?.id || "");
   const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
+  const lessonRefs = useRef<Map<string, HTMLLIElement | null>>(new Map());
+
+  useEffect(() => {
+    const activeLessonElement = lessonRefs.current.get(activeLessonId);
+    if (activeLessonElement) {
+      setTimeout(() => {
+        activeLessonElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+    }
+  }, [activeLessonId]);
 
   useEffect(() => {
     if (!currentUser) return;
-    
+
     const storedWatched = new Set<string>();
-    lessons.forEach(lesson => {
+    lessons.forEach((lesson) => {
       try {
-        if (localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === 'watched') {
+        if (
+          localStorage.getItem(`progress_${currentUser.id}_${lesson.videoId}`) === "watched"
+        ) {
           storedWatched.add(lesson.id);
         }
       } catch (e) {
@@ -30,29 +52,26 @@ export function LessonList({ lessons }: LessonListProps) {
       }
     });
     setWatchedLessons(storedWatched);
-  }, [lessons, currentUser]);
+
+    const activeLesson = lessons.find((l) => l.id === activeLessonId);
+    if (activeLesson) {
+      const timeoutId = setTimeout(() => {
+        setWatchedLessons((prev) => new Set(prev).add(activeLesson.id));
+        try {
+          localStorage.setItem(
+            `progress_${currentUser.id}_${activeLesson.videoId}`,
+            "watched"
+          );
+        } catch (e) {
+          // localStorage not available
+        }
+      }, 5000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [lessons, currentUser, activeLessonId]);
 
   const handleLessonClick = (lesson: Lesson) => {
-    if (!currentUser) return;
-
-    setActiveLessonId(lesson.id);
-    const event = new CustomEvent("changeVideo", {
-      detail: { 
-        videoId: lesson.videoId, 
-        title: lesson.title,
-        pdfUrl: lesson.pdfUrl
-      },
-    });
-    window.dispatchEvent(event);
-
-    setTimeout(() => {
-      setWatchedLessons(prev => new Set(prev).add(lesson.id));
-      try {
-        localStorage.setItem(`progress_${currentUser.id}_${lesson.videoId}`, 'watched');
-      } catch (e) {
-        // localStorage not available
-      }
-    }, 5000);
+    onLessonClick(lesson);
   };
 
   if (isLoading) {
@@ -62,12 +81,12 @@ export function LessonList({ lessons }: LessonListProps) {
           <CardTitle>Course Content</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-muted rounded animate-pulse" />
-            ))}
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+          ))}
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -83,6 +102,7 @@ export function LessonList({ lessons }: LessonListProps) {
             return (
               <li
                 key={lesson.id}
+                ref={(el) => lessonRefs.current.set(lesson.id, el)}
                 className={cn(
                   "flex items-center justify-between rounded-md transition-colors",
                   isActive ? "bg-secondary" : "hover:bg-muted/50"
