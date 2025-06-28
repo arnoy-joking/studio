@@ -10,11 +10,12 @@ import {
   SidebarContent,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList } from "lucide-react";
+import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList, Lock } from "lucide-react";
 
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/progress", label: "Public Progress", icon: ClipboardList },
+  { href: "/manage-courses", label: "Manage Courses", icon: Lock },
   { href: "#", label: "Settings", icon: Settings },
   { href: "#", label: "Help", icon: LifeBuoy },
 ];

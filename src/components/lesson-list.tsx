@@ -14,6 +14,20 @@ interface LessonListProps {
   courseId: string;
 }
 
+function parseDurationToMs(duration: string): number {
+    const parts = duration.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 3) { // HH:MM:SS
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) { // MM:SS
+        seconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 1) { // SS
+        seconds = parts[0];
+    }
+    return seconds * 1000;
+}
+
+
 export function LessonList({
   lessons,
   activeLessonId,
@@ -54,7 +68,8 @@ export function LessonList({
     setWatchedLessons(storedWatched);
 
     const activeLesson = lessons.find((l) => l.id === activeLessonId);
-    if (activeLesson) {
+    if (activeLesson && !watchedLessons.has(activeLesson.id)) {
+      const durationInMs = parseDurationToMs(activeLesson.duration);
       const timeoutId = setTimeout(() => {
         setWatchedLessons((prev) => new Set(prev).add(activeLesson.id));
         try {
@@ -65,10 +80,10 @@ export function LessonList({
         } catch (e) {
           // localStorage not available
         }
-      }, 5000);
+      }, durationInMs); // Use full lesson duration
       return () => clearTimeout(timeoutId);
     }
-  }, [lessons, currentUser, activeLessonId]);
+  }, [lessons, currentUser, activeLessonId, watchedLessons]);
 
   const handleLessonClick = (lesson: Lesson) => {
     onLessonClick(lesson);
@@ -138,15 +153,17 @@ export function LessonList({
                     </p>
                   </div>
                 </button>
-                <a
-                  href={lesson.pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-3 text-muted-foreground hover:text-primary"
-                  aria-label={`Download materials for ${lesson.title}`}
-                >
-                  <Download className="h-5 w-5" />
-                </a>
+                {lesson.pdfUrl &&
+                    <a
+                    href={lesson.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 text-muted-foreground hover:text-primary"
+                    aria-label={`Download materials for ${lesson.title}`}
+                    >
+                        <Download className="h-5 w-5" />
+                    </a>
+                }
               </li>
             );
           })}
