@@ -53,6 +53,8 @@ export function VideoPlayer({ videoId, title, onVideoEnd }: VideoPlayerProps) {
 
       const player = new window.YT.Player(playerContainerId, {
         videoId: videoId,
+        width: '100%',
+        height: '100%',
         playerVars: {
           autoplay: 1,
           modestbranding: 1,
@@ -98,7 +100,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd }: VideoPlayerProps) {
 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border bg-muted">
-      <div id={playerContainerId}>
+      <div id={playerContainerId} className="w-full h-full">
         <Skeleton className="w-full h-full" />
       </div>
     </div>
