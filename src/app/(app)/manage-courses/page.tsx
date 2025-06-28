@@ -90,7 +90,7 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
             slug: '',
             description: '',
             thumbnail: '',
-            lessons: [{ id: crypto.randomUUID(), title: '', duration: '00:00:00', videoId: '', pdfUrl: '' }],
+            lessons: [],
         },
     });
 
@@ -98,6 +98,12 @@ function CourseForm({ course, onFormSubmit, closeDialog }: { course?: Course; on
         control: form.control,
         name: "lessons",
     });
+
+    useEffect(() => {
+        if (!course) {
+            append({ id: crypto.randomUUID(), title: '', duration: '00:00:00', videoId: '', pdfUrl: '' });
+        }
+    }, [course, append]);
 
     const handleParseBulkLessons = () => {
         const lines = bulkText.split('\n').filter(line => line.trim() !== '');
@@ -328,7 +334,7 @@ export default function ManageCoursesPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const correctPassword = 'arnoy-joking';
+    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'arnoy-joking';
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
