@@ -61,6 +61,7 @@ export function VideoPlayer({ initialVideoId, initialTitle }: VideoPlayerProps) 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border">
       <iframe
+        key={videoId}
         width="100%"
         height="100%"
         src={`https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`}
