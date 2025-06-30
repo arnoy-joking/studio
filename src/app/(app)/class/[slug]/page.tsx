@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/context/user-context";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export default function ClassPage({
@@ -151,9 +152,11 @@ export default function ClassPage({
   return (
     <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+
+        {/* Desktop Layout */}
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-2 space-y-4">
-            <div className="sticky top-16 md:top-24 space-y-4 z-10 bg-background pb-4">
+            <div className="sticky top-16 space-y-4 z-10 bg-background pb-4">
               {currentLesson && (
                 <VideoPlayer
                   key={currentLesson.id}
@@ -198,6 +201,65 @@ export default function ClassPage({
               watchedLessons={watchedLessons}
             />
           </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="md:hidden">
+          <div className="sticky top-16 space-y-4 z-10 bg-background pb-4">
+            {currentLesson && (
+              <VideoPlayer
+                key={currentLesson.id}
+                videoId={currentLesson.videoId}
+                title={currentLesson.title}
+                onVideoEnd={handleVideoEnd}
+                startTime={startTime}
+                onProgress={handleProgress}
+              />
+            )}
+          </div>
+          
+          <Tabs defaultValue="lessons" className="w-full mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="lessons">Lessons</TabsTrigger>
+              <TabsTrigger value="about">About</TabsTrigger>
+            </TabsList>
+            <TabsContent value="lessons">
+              <LessonList
+                lessons={course.lessons}
+                activeLessonId={currentLesson?.id || ""}
+                onLessonClick={handleSelectLesson}
+                watchedLessons={watchedLessons}
+              />
+            </TabsContent>
+            <TabsContent value="about">
+              <div className="space-y-4">
+                {currentLesson?.pdfUrl && (
+                  <Button asChild className="w-full">
+                      <a href={currentLesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Lesson PDF
+                      </a>
+                  </Button>
+                )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{course.title}</CardTitle>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+                        <Badge variant="outline">{course.lessons.length} Lessons</Badge>
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4" />
+                            <span>{hours > 0 ? `${hours}h ` : ''}{minutes}m total</span>
+                        </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <h3 className="font-semibold mb-2 text-lg">About this course</h3>
+                    <p className="text-muted-foreground">{course.description}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </main>
