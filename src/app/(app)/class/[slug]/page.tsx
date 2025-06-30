@@ -87,10 +87,13 @@ export default function ClassPage({
   const handleVideoEnd = useCallback(() => {
     if (!currentUser || !currentLesson || !course) return;
 
-    if (watchedLessons.has(currentLesson.id)) return;
-
-    setWatchedLessons(prev => new Set(prev).add(currentLesson.id));
+    // Always update the backend to refresh the timestamp for the daily goal.
     markLessonAsWatchedAction(currentUser.id, currentLesson, course.id);
+
+    // Update the UI to show the checkmark, if it's not already there.
+    if (!watchedLessons.has(currentLesson.id)) {
+      setWatchedLessons(prev => new Set(prev).add(currentLesson.id));
+    }
   }, [currentUser, currentLesson, course, watchedLessons]);
 
   const handleProgress = useCallback((time: number) => {
