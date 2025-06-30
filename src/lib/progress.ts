@@ -139,18 +139,35 @@ export async function getLessonsWatchedTodayCount(userId: string): Promise<numbe
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const startOfToday = Timestamp.fromDate(today);
 
+        // Fetch all completed lessons for the user
         const q = query(
             progressCollection,
             where("userId", "==", userId),
-            where("completed", "==", true),
-            where("completedAt", ">=", startOfToday)
+            where("completed", "==", true)
         );
         const snapshot = await getDocs(q);
-        return snapshot.size;
+        
+        if (snapshot.empty) {
+            return 0;
+        }
+
+        // Filter in code to avoid needing a complex index
+        let count = 0;
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Ensure completedAt exists and is a Firestore Timestamp
+            if (data.completedAt && data.completedAt.toDate) {
+                const completedDate = data.completedAt.toDate();
+                if (completedDate >= today) {
+                    count++;
+                }
+            }
+        });
+
+        return count;
     } catch (error) {
-        console.error("Error fetching today's watched lessons count, you might need to create a Firestore index:", error);
+        console.error("Error fetching today's watched lessons count:", error);
         return 0;
     }
 }
