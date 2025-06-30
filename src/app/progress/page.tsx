@@ -57,7 +57,7 @@ export default function ProgressPage() {
                     </Button>
                 </nav>
             </header>
-            <main className="flex-1 p-6 lg:p-8">
+            <main className="flex-1 p-4 md:p-6 lg:p-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-4xl font-headline font-bold text-primary">Learner Progress</h1>

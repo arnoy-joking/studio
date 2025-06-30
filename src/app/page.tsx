@@ -19,7 +19,7 @@ export default function Home() {
           </Button>
         </nav>
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-background">
+      <main className="flex-1 flex flex-col items-center justify-center text-center p-4 md:p-8 bg-background">
         <div className="max-w-3xl">
           <BookOpen className="w-24 h-24 mx-auto text-primary mb-6" />
           <h1 className="text-5xl md:text-6xl font-headline font-bold text-primary tracking-tight">
