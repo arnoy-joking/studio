@@ -153,24 +153,26 @@ export default function ClassPage({
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-2 space-y-4">
-            {currentLesson && (
-              <VideoPlayer
-                key={currentLesson.id}
-                videoId={currentLesson.videoId}
-                title={currentLesson.title}
-                onVideoEnd={handleVideoEnd}
-                startTime={startTime}
-                onProgress={handleProgress}
-              />
-            )}
-            {currentLesson?.pdfUrl && (
-                 <Button asChild>
-                    <a href={currentLesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF for current lesson
-                    </a>
-                </Button>
-            )}
+            <div className="md:sticky md:top-24 space-y-4 z-10 bg-background pb-4">
+              {currentLesson && (
+                <VideoPlayer
+                  key={currentLesson.id}
+                  videoId={currentLesson.videoId}
+                  title={currentLesson.title}
+                  onVideoEnd={handleVideoEnd}
+                  startTime={startTime}
+                  onProgress={handleProgress}
+                />
+              )}
+              {currentLesson?.pdfUrl && (
+                  <Button asChild>
+                      <a href={currentLesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF for current lesson
+                      </a>
+                  </Button>
+              )}
+            </div>
             <Card>
               <CardHeader>
                 <CardTitle>{course.title}</CardTitle>
