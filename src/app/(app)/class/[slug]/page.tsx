@@ -100,7 +100,7 @@ export default function ClassPage({
 
   if (isLoading || isUserLoading) {
      return (
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     <div className="lg:col-span-2 space-y-8">
@@ -119,7 +119,7 @@ export default function ClassPage({
 
   if (!course) {
     return (
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8">
             <div className="max-w-7xl mx-auto text-center">
                 <h1 className="text-2xl font-bold">Course not found</h1>
                 <p className="text-muted-foreground">The course you are looking for does not exist.</p>
@@ -149,7 +149,7 @@ export default function ClassPage({
 
 
   return (
-    <main className="flex-1 p-4 sm:p-6 lg:p-8">
+    <main className="flex-1 p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-4">

@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
   if (isLoading || isUserLoading) {
     return (
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
             <Skeleton className="h-10 w-1/2 mb-8" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
 
   return (
-    <main className="flex-1 p-4 sm:p-6 lg:p-8">
+    <main className="flex-1 p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-headline font-bold tracking-tight text-primary mb-8">
           Welcome back, {currentUser?.name || 'Learner'}!

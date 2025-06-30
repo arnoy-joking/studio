@@ -396,7 +396,7 @@ export default function ManageCoursesPage() {
 
     if (!isAuthenticated) {
         return (
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+            <main className="flex-1 p-6 lg:p-8 flex items-center justify-center">
                 <Card className="w-full max-w-md">
                     <form onSubmit={handleLogin}>
                         <CardHeader>
@@ -427,7 +427,7 @@ export default function ManageCoursesPage() {
     }
 
     return (
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
                 <CourseManager />
             </div>

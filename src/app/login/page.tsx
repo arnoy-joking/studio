@@ -77,14 +77,14 @@ export default function LoginPage() {
 
     if (isLoading || currentUser) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <div className="flex min-h-screen items-center justify-center bg-background p-6">
                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         )
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-6">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <Compass className="mx-auto h-12 w-12 text-primary" />
