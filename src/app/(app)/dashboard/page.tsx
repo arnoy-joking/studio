@@ -4,7 +4,7 @@ import { CourseList } from "@/components/dashboard/course-list";
 import { GoalsCard } from "@/components/dashboard/goals-card";
 import { ClassGoalCard } from "@/components/dashboard/progress-summary-card";
 import { getCoursesAction } from '@/app/actions/course-actions';
-import { getWatchedLessonIdsAction } from '@/app/actions/progress-actions';
+import { getWatchedLessonIdsAction, getLessonsWatchedTodayCountAction } from '@/app/actions/progress-actions';
 import type { Course } from '@/lib/types';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,15 +16,17 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [watchedLessonsCount, setWatchedLessonsCount] = useState(0);
+  const [dailyWatchedCount, setDailyWatchedCount] = useState(0);
   const [progress, setProgress] = useState<ProgressData>({});
 
   useEffect(() => {
     async function loadData() {
       if (!currentUser) return;
       setIsLoading(true);
-      const [fetchedCourses, watchedLessonIds] = await Promise.all([
+      const [fetchedCourses, watchedLessonIds, dailyCount] = await Promise.all([
         getCoursesAction(),
-        getWatchedLessonIdsAction(currentUser.id)
+        getWatchedLessonIdsAction(currentUser.id),
+        getLessonsWatchedTodayCountAction(currentUser.id)
       ]);
       setCourses(fetchedCourses);
 
@@ -43,6 +45,7 @@ export default function DashboardPage() {
 
       setProgress(progressDataSets);
       setWatchedLessonsCount(watchedLessonIds.size);
+      setDailyWatchedCount(dailyCount);
       setIsLoading(false);
     }
 
@@ -83,7 +86,7 @@ export default function DashboardPage() {
             <CourseList courses={courses} progress={progress} />
           </div>
           <div className="space-y-8 lg:sticky lg:top-24">
-            <ClassGoalCard watchedCount={watchedLessonsCount} />
+            <ClassGoalCard watchedCount={dailyWatchedCount} />
             <GoalsCard />
           </div>
         </div>

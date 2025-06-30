@@ -30,7 +30,6 @@ export async function markLessonAsWatched(userId: string, lesson: Lesson, course
     const progressId = `${userId}_${lesson.id}`;
     const progressRef = doc(db, 'progress', progressId);
     
-    const docSnap = await getDoc(progressRef);
     const data = {
         userId,
         lessonId: lesson.id,
@@ -38,8 +37,8 @@ export async function markLessonAsWatched(userId: string, lesson: Lesson, course
         videoId: lesson.videoId,
         completed: true,
         seekTo: 0,
+        completedAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-        ...(!docSnap.exists() && { watchedAt: Timestamp.now() })
     };
 
     await setDoc(progressRef, data, { merge: true });
@@ -133,5 +132,25 @@ export async function updateLessonProgress(userId: string, courseId: string, les
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
         });
+    }
+}
+
+export async function getLessonsWatchedTodayCount(userId: string): Promise<number> {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startOfToday = Timestamp.fromDate(today);
+
+        const q = query(
+            progressCollection,
+            where("userId", "==", userId),
+            where("completed", "==", true),
+            where("completedAt", ">=", startOfToday)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.size;
+    } catch (error) {
+        console.error("Error fetching today's watched lessons count, you might need to create a Firestore index:", error);
+        return 0;
     }
 }

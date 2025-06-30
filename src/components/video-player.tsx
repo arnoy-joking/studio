@@ -61,7 +61,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
         width: '100%',
         height: '100%',
         playerVars: {
-          autoplay: 1,
+          autoplay: 0,
           modestbranding: 1,
           rel: 0,
           start: Math.floor(startTime),

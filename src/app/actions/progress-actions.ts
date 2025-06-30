@@ -55,3 +55,7 @@ export async function updateLessonProgressAction(userId: string, courseId: strin
         return { success: false, message: "Failed to save progress." };
     }
 }
+
+export async function getLessonsWatchedTodayCountAction(userId: string) {
+    return await progressDb.getLessonsWatchedTodayCount(userId);
+}
