@@ -153,7 +153,7 @@ export default function ClassPage({
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           <div className="md:col-span-2 space-y-4">
-            <div className="md:sticky md:top-24 space-y-4 z-10 bg-background pb-4">
+            <div className="sticky top-16 md:top-24 space-y-4 z-10 bg-background pb-4">
               {currentLesson && (
                 <VideoPlayer
                   key={currentLesson.id}
