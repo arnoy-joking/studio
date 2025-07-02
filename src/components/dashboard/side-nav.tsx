@@ -10,7 +10,7 @@ import {
   SidebarContent,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList, Lock, UserPlus } from "lucide-react";
+import { Compass, LayoutDashboard, Settings, LifeBuoy, ClipboardList, Lock, UserPlus, FileText } from "lucide-react";
 import { AddUserDialog } from "./add-user-dialog";
 import { useUser } from "@/context/user-context";
 import { getUsersAction } from "@/app/actions/user-actions";
@@ -18,6 +18,7 @@ import { Button } from "../ui/button";
 
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/pdf-hub", label: "PDF Hub", icon: FileText },
   { href: "/progress", label: "Public Progress", icon: ClipboardList },
   { href: "/manage-courses", label: "Manage Courses", icon: Lock },
 ];
