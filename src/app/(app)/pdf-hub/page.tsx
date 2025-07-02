@@ -69,7 +69,7 @@ export default function PdfHubPage() {
                 </CardContent>
             </Card>
         ) : (
-            <Accordion type="multiple" defaultValue={courses.map(c => c.id)} className="w-full space-y-4">
+            <Accordion type="multiple" className="w-full space-y-4">
                 {courses.map(course => (
                     <AccordionItem value={course.id} key={course.id} className="border-b-0 rounded-lg border bg-card text-card-foreground shadow-sm">
                          <AccordionTrigger className="p-6 text-xl font-semibold hover:no-underline text-left">
