@@ -21,3 +21,12 @@ export interface User {
   name: string;
   avatar: string;
 }
+
+export interface RoutineEntry {
+  time: string;
+  courseId: string | null;
+}
+
+export interface WeeklyRoutine {
+  [day: string]: RoutineEntry[];
+}
