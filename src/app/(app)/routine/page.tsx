@@ -11,7 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarDays, Loader2, Save } from 'lucide-react';
+import { CalendarDays, Loader2, Save, RotateCcw } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SLOTS_PER_DAY = 4;
@@ -85,6 +96,14 @@ export default function RoutinePage() {
     setIsSaving(false);
   };
 
+  const handleResetRoutine = () => {
+    setRoutine(createInitialRoutine());
+    toast({
+        title: 'Routine Cleared',
+        description: 'Your weekly schedule has been reset.',
+    });
+  };
+
   if (isLoading || isUserLoading) {
     return (
       <main className="flex-1 p-4 md:p-6 lg:p-8">
@@ -123,10 +142,34 @@ export default function RoutinePage() {
               Plan your week to stay on track with your learning goals.
             </p>
           </div>
-          <Button onClick={handleSaveRoutine} disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-            Save Routine
-          </Button>
+          <div className="flex items-center gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset Routine
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will clear your entire weekly routine. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetRoutine}>
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={handleSaveRoutine} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save Routine
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
