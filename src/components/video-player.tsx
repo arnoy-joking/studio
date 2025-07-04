@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -40,13 +41,26 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerContainerId = `youtube-player-${videoId}-${Math.random()}`;
 
+  const saveCurrentTime = useCallback(() => {
+    if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        const currentTime = playerRef.current.getCurrentTime();
+        if (currentTime > 0) {
+            onProgress(currentTime);
+        }
+    }
+  }, [onProgress]);
+
   const cleanup = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
     if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-      playerRef.current.destroy();
+      try {
+        playerRef.current.destroy();
+      } catch (e) {
+        console.error("Error destroying YouTube player:", e);
+      }
       playerRef.current = null;
     }
   }, []);
@@ -72,20 +86,22 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
               onVideoEnd();
               if (intervalRef.current) clearInterval(intervalRef.current);
             }
+            // Save progress when video is paused
+            if (event.data === window.YT.PlayerState.PAUSED) {
+              saveCurrentTime();
+            }
           },
-          onReady: () => {
+          onReady: (event: any) => {
+            // Save progress periodically while playing
             intervalRef.current = setInterval(() => {
-                if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
-                    const currentTime = playerRef.current.getCurrentTime();
-                    if (currentTime > 0) {
-                        onProgress(currentTime);
-                    }
+                if (event.target.getPlayerState() === window.YT.PlayerState.PLAYING) {
+                    saveCurrentTime();
                 }
-            }, 15000);
+            }, 5000); // Save every 5 seconds
           }
         },
       });
-  }, [videoId, startTime, onVideoEnd, onProgress, playerContainerId, cleanup]);
+  }, [videoId, startTime, onVideoEnd, saveCurrentTime, playerContainerId, cleanup]);
 
   useEffect(() => {
     loadYouTubeAPI();
@@ -106,6 +122,8 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
     }
 
     return () => {
+      // Save progress one last time on unmount
+      saveCurrentTime();
       cleanup();
       if (window.ytCallbacks) {
         const index = window.ytCallbacks.indexOf(createPlayer);
@@ -114,7 +132,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
         }
       }
     };
-  }, [createPlayer, playerContainerId]);
+  }, [createPlayer, playerContainerId, saveCurrentTime, cleanup]);
 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border bg-muted">
