@@ -68,6 +68,15 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
   const createPlayer = useCallback(() => {
       if (!document.getElementById(playerContainerId) || !window.YT) return;
       
+      let timeToStart = startTime;
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        const currentTime = playerRef.current.getCurrentTime();
+        if (currentTime > 0) {
+            timeToStart = currentTime;
+            saveCurrentTime();
+        }
+      }
+
       cleanup();
 
       playerRef.current = new window.YT.Player(playerContainerId, {
@@ -78,7 +87,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
           autoplay: 0,
           modestbranding: 1,
           rel: 0,
-          start: Math.floor(startTime),
+          start: Math.floor(timeToStart),
         },
         events: {
           onStateChange: (event: any) => {
@@ -86,18 +95,16 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
               onVideoEnd();
               if (intervalRef.current) clearInterval(intervalRef.current);
             }
-            // Save progress when video is paused
             if (event.data === window.YT.PlayerState.PAUSED) {
               saveCurrentTime();
             }
           },
           onReady: (event: any) => {
-            // Save progress periodically while playing
             intervalRef.current = setInterval(() => {
                 if (event.target.getPlayerState() === window.YT.PlayerState.PLAYING) {
                     saveCurrentTime();
                 }
-            }, 5000); // Save every 5 seconds
+            }, 5000);
           }
         },
       });
@@ -122,7 +129,6 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
     }
 
     return () => {
-      // Save progress one last time on unmount
       saveCurrentTime();
       cleanup();
       if (window.ytCallbacks) {
@@ -133,6 +139,26 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
       }
     };
   }, [createPlayer, playerContainerId, saveCurrentTime, cleanup]);
+
+  // Effect to handle window resizing
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+
+    const handleResize = () => {
+        clearTimeout(resizeTimeout);
+        // Debounce the player recreation to avoid performance issues.
+        resizeTimeout = setTimeout(() => {
+            createPlayer();
+        }, 500); 
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+        clearTimeout(resizeTimeout);
+        window.removeEventListener('resize', handleResize);
+    };
+  }, [createPlayer]);
 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border bg-muted">
