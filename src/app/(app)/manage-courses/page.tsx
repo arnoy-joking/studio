@@ -306,13 +306,13 @@ function CourseManager() {
 
     return (
         <div>
-             <div className="flex justify-between items-center mb-6">
+             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Manage Courses</h1>
                     <p className="text-muted-foreground">Add, edit, or reorder your courses.</p>
                 </div>
                 <AddEditCourseDialog onUpdate={fetchCourses} totalCourses={courses.length}>
-                    <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Course</Button>
+                    <Button className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4" /> Add Course</Button>
                 </AddEditCourseDialog>
             </div>
             {isOrderChanged && (
@@ -327,7 +327,7 @@ function CourseManager() {
             <div className="space-y-4">
                 {courses.map((course, index) => (
                     <Card key={course.id}>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                <div className="flex flex-col gap-1">
                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
@@ -342,7 +342,7 @@ function CourseManager() {
                                     <CardDescription>{course.lessons.length} lessons</CardDescription>
                                </div>
                            </div>
-                           <div className="flex gap-2">
+                           <div className="flex gap-2 self-end sm:self-center">
                                 <AddEditCourseDialog course={course} onUpdate={fetchCourses}>
                                     <Button variant="outline" size="icon"><Edit className="h-4 w-4" /></Button>
                                 </AddEditCourseDialog>

@@ -79,12 +79,12 @@ export default function ProgressPage() {
                                 return (
                                 <AccordionItem value={user.id} key={user.id}>
                                     <AccordionTrigger>
-                                        <div className="flex items-center gap-4 w-full pr-4">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full pr-4 text-left">
                                             <div className="flex items-center gap-2 flex-1">
                                                 <User className="h-5 w-5 text-primary" />
                                                 <span className="font-semibold text-lg">{user.name}</span>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-left sm:text-right w-full sm:w-auto">
                                                 <div className="font-bold">{percentage}% complete</div>
                                                 <div className="text-sm text-muted-foreground">{completedCount} / {allLessonsCount} lessons</div>
                                             </div>

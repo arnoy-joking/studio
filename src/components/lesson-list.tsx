@@ -50,7 +50,7 @@ export function LessonList({
         <CardTitle>Course Content</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[480px] w-full">
+        <ScrollArea className="h-[50vh] md:h-[480px] w-full">
             <ul className="space-y-1 pr-4">
             {lessons.map((lesson, index) => {
                 const isActive = lesson.id === activeLessonId;

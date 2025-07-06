@@ -10,7 +10,7 @@ export default function Home() {
           <Compass className="w-8 h-8" />
           <span>Course Compass</span>
         </Link>
-        <nav className="flex gap-4 items-center">
+        <nav className="flex gap-2 items-center flex-wrap justify-end">
           <Button variant="ghost" asChild>
             <Link href="/login">Log In</Link>
           </Button>
