@@ -33,6 +33,7 @@ export default function ClassPage({
 }: {
   params: { slug: string };
 }) {
+  const { slug } = params;
   const [course, setCourse] = useState<Course | null>(null);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [watchedLessons, setWatchedLessons] = useState<Set<string>>(new Set());
@@ -44,7 +45,7 @@ export default function ClassPage({
     setIsLoading(true);
     
     const [fetchedCourse, watchedLessonIds] = await Promise.all([
-        getCourseBySlug(params.slug),
+        getCourseBySlug(slug),
         getWatchedLessonIdsAction(userId)
     ]);
     
@@ -63,7 +64,7 @@ export default function ClassPage({
       }
     }
     setIsLoading(false);
-  }, [params.slug]);
+  }, [slug, currentUser?.id]);
 
 
   useEffect(() => {
@@ -102,13 +103,13 @@ export default function ClassPage({
      return (
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div className="lg:col-span-2 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                    <div className="md:col-span-2 space-y-8">
                         <Skeleton className="w-full aspect-video rounded-lg" />
                          <Skeleton className="h-10 w-48" />
                         <Skeleton className="h-64 w-full rounded-lg" />
                     </div>
-                    <div className="lg:sticky lg:top-24">
+                    <div className="md:sticky md:top-24">
                        <Skeleton className="h-[480px] w-full rounded-lg" />
                     </div>
                 </div>
@@ -151,8 +152,8 @@ export default function ClassPage({
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div className="md:col-span-2 space-y-4">
             {currentLesson && (
               <VideoPlayer
                 key={currentLesson.id}
@@ -188,7 +189,7 @@ export default function ClassPage({
               </CardContent>
             </Card>
           </div>
-          <div className="lg:sticky lg:top-24">
+          <div className="md:sticky md:top-24">
             <LessonList
               lessons={course.lessons}
               activeLessonId={currentLesson?.id || ""}

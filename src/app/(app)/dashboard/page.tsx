@@ -60,11 +60,11 @@ export default function DashboardPage() {
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
             <Skeleton className="h-10 w-1/2 mb-8" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                <div className="md:col-span-2 space-y-8">
                     <Skeleton className="h-96 w-full rounded-lg" />
                 </div>
-                <div className="space-y-8 lg:sticky lg:top-24">
+                <div className="space-y-8 md:sticky md:top-24">
                     <Skeleton className="h-48 w-full rounded-lg" />
                     <Skeleton className="h-72 w-full rounded-lg" />
                 </div>
@@ -81,11 +81,11 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-headline font-bold tracking-tight text-primary mb-8">
           Welcome back, {currentUser?.name || 'Learner'}!
         </h1>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div className="md:col-span-2 space-y-8">
             <CourseList courses={courses} progress={progress} />
           </div>
-          <div className="space-y-8 lg:sticky lg:top-24">
+          <div className="space-y-8 md:sticky md:top-24">
             <ClassGoalCard watchedCount={dailyWatchedCount} />
             <GoalsCard />
           </div>
