@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -37,19 +38,28 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgress }: VideoPlayerProps) {
   const playerRef = useRef<any>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerContainerId = `youtube-player-${videoId}-${Math.random()}`;
 
   const cleanup = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
     if (playerRef.current && typeof playerRef.current.destroy === 'function') {
       playerRef.current.destroy();
       playerRef.current = null;
     }
   }, []);
+
+  const saveCurrentProgress = useCallback(() => {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+          const currentTime = playerRef.current.getCurrentTime();
+          if (currentTime > 0) {
+              onProgress(currentTime);
+          }
+      }
+  }, [onProgress]);
 
   const createPlayer = useCallback(() => {
       if (!document.getElementById(playerContainerId) || !window.YT) return;
@@ -68,24 +78,27 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
         },
         events: {
           onStateChange: (event: any) => {
-            if (event.data === window.YT.PlayerState.ENDED) { 
+            // Clear any existing interval
+            if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+            }
+
+            if (event.data === window.YT.PlayerState.PLAYING) {
+                // Start saving progress every 15 seconds while playing
+                progressIntervalRef.current = setInterval(saveCurrentProgress, 15000);
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
+                // Save progress immediately when the user pauses
+                saveCurrentProgress();
+            } else if (event.data === window.YT.PlayerState.ENDED) { 
               onVideoEnd();
-              if (intervalRef.current) clearInterval(intervalRef.current);
+              // Save one last time to record the end state
+              saveCurrentProgress();
             }
           },
-          onReady: () => {
-            intervalRef.current = setInterval(() => {
-                if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
-                    const currentTime = playerRef.current.getCurrentTime();
-                    if (currentTime > 0) {
-                        onProgress(currentTime);
-                    }
-                }
-            }, 15000);
-          }
         },
       });
-  }, [videoId, startTime, onVideoEnd, onProgress, playerContainerId, cleanup]);
+  }, [videoId, startTime, onVideoEnd, saveCurrentProgress, playerContainerId, cleanup]);
 
   useEffect(() => {
     loadYouTubeAPI();
@@ -98,14 +111,10 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
       }
     };
     
-    const container = document.getElementById(playerContainerId);
-    if (container) {
-        initPlayer();
-    } else {
-        setTimeout(initPlayer, 100);
-    }
+    const timer = setTimeout(initPlayer, 100);
 
     return () => {
+      clearTimeout(timer);
       cleanup();
       if (window.ytCallbacks) {
         const index = window.ytCallbacks.indexOf(createPlayer);
@@ -114,7 +123,7 @@ export function VideoPlayer({ videoId, title, onVideoEnd, startTime = 0, onProgr
         }
       }
     };
-  }, [createPlayer, playerContainerId]);
+  }, [createPlayer, cleanup]);
 
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg border bg-muted">
