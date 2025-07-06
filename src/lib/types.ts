@@ -21,3 +21,11 @@ export interface User {
   name: string;
   avatar: string;
 }
+
+export interface RoutineSlot {
+    id: string;
+    time: string;
+    courseId: string;
+}
+
+export type WeeklyRoutine = Record<string, RoutineSlot[]>;

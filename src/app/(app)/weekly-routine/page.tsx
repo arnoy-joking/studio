@@ -1,10 +1,11 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { toJpeg } from 'html-to-image';
-import type { Course } from '@/lib/types';
+import type { Course, WeeklyRoutine } from '@/lib/types';
 import { getCoursesAction } from '@/app/actions/course-actions';
+import { getRoutineAction, saveRoutineAction, resetRoutineAction } from '@/app/actions/routine-actions';
+import { useUser } from '@/context/user-context';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,14 +16,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const NUM_SLOTS = 4;
-
-interface RoutineSlot {
-    id: string;
-    time: string;
-    courseId: string;
-}
-
-type WeeklyRoutine = Record<string, RoutineSlot[]>;
 
 const generateInitialRoutine = (): WeeklyRoutine => {
     const routine: WeeklyRoutine = {};
@@ -41,27 +34,36 @@ export default function WeeklyRoutinePage() {
     const [routine, setRoutine] = useState<WeeklyRoutine>(generateInitialRoutine());
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
     const routineRef = useRef<HTMLDivElement>(null);
+    const { currentUser, isLoading: isUserLoading } = useUser();
 
     useEffect(() => {
         async function loadInitialData() {
+            if (!currentUser) return;
             setIsLoading(true);
-            const fetchedCourses = await getCoursesAction();
+
+            const [fetchedCourses, savedRoutine] = await Promise.all([
+                getCoursesAction(),
+                getRoutineAction(currentUser.id)
+            ]);
+            
             setCourses(fetchedCourses);
 
-            try {
-                const savedRoutine = localStorage.getItem('weeklyRoutine');
-                if (savedRoutine) {
-                    setRoutine(JSON.parse(savedRoutine));
-                }
-            } catch (error) {
-                console.warn("Could not load routine from localStorage");
+            if (savedRoutine) {
+                setRoutine(savedRoutine);
+            } else {
+                setRoutine(generateInitialRoutine());
             }
+
             setIsLoading(false);
         }
-        loadInitialData();
-    }, []);
+
+        if (!isUserLoading) {
+            loadInitialData();
+        }
+    }, [currentUser, isUserLoading]);
 
     const handleSlotChange = (day: string, slotIndex: number, field: 'time' | 'courseId', value: string) => {
         setRoutine(prevRoutine => {
@@ -81,12 +83,17 @@ export default function WeeklyRoutinePage() {
         });
     }
 
-    const saveRoutine = () => {
+    const handleSaveRoutine = async () => {
+        if (!currentUser) {
+            toast({ title: 'Error', description: 'You must be logged in to save a routine.', variant: 'destructive' });
+            return;
+        }
+        setIsSaving(true);
         try {
-            localStorage.setItem('weeklyRoutine', JSON.stringify(routine));
+            await saveRoutineAction(currentUser.id, routine);
             toast({
                 title: 'Routine Saved!',
-                description: 'Your weekly study routine has been saved successfully.',
+                description: 'Your weekly study routine has been saved to your profile.',
             });
         } catch (error) {
             toast({
@@ -94,19 +101,27 @@ export default function WeeklyRoutinePage() {
                 description: 'Could not save your routine. Please try again.',
                 variant: 'destructive',
             });
+        } finally {
+            setIsSaving(false);
         }
     };
     
-    const handleResetRoutine = () => {
+    const handleResetRoutine = async () => {
+        if (!currentUser) return;
+        
         setRoutine(generateInitialRoutine());
         try {
-            localStorage.removeItem('weeklyRoutine');
+            await resetRoutineAction(currentUser.id);
             toast({
                 title: 'Routine Reset!',
-                description: 'Your weekly study routine has been cleared.',
+                description: 'Your weekly study routine has been cleared from your profile.',
             });
         } catch (error) {
-            console.warn("Could not clear routine from localStorage");
+             toast({
+                title: 'Error Resetting Routine',
+                description: 'Could not reset your routine. Please try again.',
+                variant: 'destructive',
+            });
         }
     };
 
@@ -135,13 +150,13 @@ export default function WeeklyRoutinePage() {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || isUserLoading) {
         return (
              <main className="flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="max-w-7xl mx-auto">
                     <Skeleton className="h-10 w-1/2 mb-8" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {daysOfWeek.map(day => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {daysOfWeek.slice(0, 4).map(day => (
                             <Skeleton key={day} className="h-80 w-full" />
                         ))}
                     </div>
@@ -160,7 +175,7 @@ export default function WeeklyRoutinePage() {
                             Weekly Routine
                         </h1>
                         <p className="text-muted-foreground mt-2">
-                            Plan your study schedule for the week ahead.
+                            Plan your study schedule for the week ahead. Saved to your profile.
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -172,22 +187,22 @@ export default function WeeklyRoutinePage() {
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Reset Routine
                         </Button>
-                        <Button onClick={saveRoutine}>
-                            <Save className="mr-2 h-4 w-4" />
+                        <Button onClick={handleSaveRoutine} disabled={isSaving}>
+                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             Save Routine
                         </Button>
                     </div>
                 </div>
 
                 <div ref={routineRef} className="bg-background p-4 rounded-lg">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {daysOfWeek.map(day => (
                             <Card key={day}>
                                 <CardHeader>
                                     <CardTitle>{day}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {routine[day].map((slot, index) => (
+                                    {routine[day] && routine[day].map((slot, index) => (
                                         <div key={slot.id} className="flex items-center gap-2">
                                             <Input
                                                 type="time"
